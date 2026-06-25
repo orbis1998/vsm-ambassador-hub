@@ -9,38 +9,197 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRessourcesRouteImport } from './routes/_app.ressources'
+import { Route as AppProfilRouteImport } from './routes/_app.profil'
+import { Route as AppParametresRouteImport } from './routes/_app.parametres'
+import { Route as AppOpportunitesRouteImport } from './routes/_app.opportunites'
+import { Route as AppDefisRouteImport } from './routes/_app.defis'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCommunauteRouteImport } from './routes/_app.communaute'
+import { Route as AppClassementRouteImport } from './routes/_app.classement'
+import { Route as AppCertificatsRouteImport } from './routes/_app.certificats'
+import { Route as AppAcademieRouteImport } from './routes/_app.academie'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRessourcesRoute = AppRessourcesRouteImport.update({
+  id: '/ressources',
+  path: '/ressources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfilRoute = AppProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppParametresRoute = AppParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOpportunitesRoute = AppOpportunitesRouteImport.update({
+  id: '/opportunites',
+  path: '/opportunites',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDefisRoute = AppDefisRouteImport.update({
+  id: '/defis',
+  path: '/defis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunauteRoute = AppCommunauteRouteImport.update({
+  id: '/communaute',
+  path: '/communaute',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassementRoute = AppClassementRouteImport.update({
+  id: '/classement',
+  path: '/classement',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCertificatsRoute = AppCertificatsRouteImport.update({
+  id: '/certificats',
+  path: '/certificats',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademieRoute = AppAcademieRouteImport.update({
+  id: '/academie',
+  path: '/academie',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/academie': typeof AppAcademieRoute
+  '/certificats': typeof AppCertificatsRoute
+  '/classement': typeof AppClassementRoute
+  '/communaute': typeof AppCommunauteRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/defis': typeof AppDefisRoute
+  '/opportunites': typeof AppOpportunitesRoute
+  '/parametres': typeof AppParametresRoute
+  '/profil': typeof AppProfilRoute
+  '/ressources': typeof AppRessourcesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/academie': typeof AppAcademieRoute
+  '/certificats': typeof AppCertificatsRoute
+  '/classement': typeof AppClassementRoute
+  '/communaute': typeof AppCommunauteRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/defis': typeof AppDefisRoute
+  '/opportunites': typeof AppOpportunitesRoute
+  '/parametres': typeof AppParametresRoute
+  '/profil': typeof AppProfilRoute
+  '/ressources': typeof AppRessourcesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/academie': typeof AppAcademieRoute
+  '/_app/certificats': typeof AppCertificatsRoute
+  '/_app/classement': typeof AppClassementRoute
+  '/_app/communaute': typeof AppCommunauteRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/defis': typeof AppDefisRoute
+  '/_app/opportunites': typeof AppOpportunitesRoute
+  '/_app/parametres': typeof AppParametresRoute
+  '/_app/profil': typeof AppProfilRoute
+  '/_app/ressources': typeof AppRessourcesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/academie'
+    | '/certificats'
+    | '/classement'
+    | '/communaute'
+    | '/dashboard'
+    | '/defis'
+    | '/opportunites'
+    | '/parametres'
+    | '/profil'
+    | '/ressources'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/academie'
+    | '/certificats'
+    | '/classement'
+    | '/communaute'
+    | '/dashboard'
+    | '/defis'
+    | '/opportunites'
+    | '/parametres'
+    | '/profil'
+    | '/ressources'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/academie'
+    | '/_app/certificats'
+    | '/_app/classement'
+    | '/_app/communaute'
+    | '/_app/dashboard'
+    | '/_app/defis'
+    | '/_app/opportunites'
+    | '/_app/parametres'
+    | '/_app/profil'
+    | '/_app/ressources'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +207,111 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/ressources': {
+      id: '/_app/ressources'
+      path: '/ressources'
+      fullPath: '/ressources'
+      preLoaderRoute: typeof AppRessourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profil': {
+      id: '/_app/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AppProfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/parametres': {
+      id: '/_app/parametres'
+      path: '/parametres'
+      fullPath: '/parametres'
+      preLoaderRoute: typeof AppParametresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/opportunites': {
+      id: '/_app/opportunites'
+      path: '/opportunites'
+      fullPath: '/opportunites'
+      preLoaderRoute: typeof AppOpportunitesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/defis': {
+      id: '/_app/defis'
+      path: '/defis'
+      fullPath: '/defis'
+      preLoaderRoute: typeof AppDefisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/communaute': {
+      id: '/_app/communaute'
+      path: '/communaute'
+      fullPath: '/communaute'
+      preLoaderRoute: typeof AppCommunauteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/classement': {
+      id: '/_app/classement'
+      path: '/classement'
+      fullPath: '/classement'
+      preLoaderRoute: typeof AppClassementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/certificats': {
+      id: '/_app/certificats'
+      path: '/certificats'
+      fullPath: '/certificats'
+      preLoaderRoute: typeof AppCertificatsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academie': {
+      id: '/_app/academie'
+      path: '/academie'
+      fullPath: '/academie'
+      preLoaderRoute: typeof AppAcademieRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAcademieRoute: typeof AppAcademieRoute
+  AppCertificatsRoute: typeof AppCertificatsRoute
+  AppClassementRoute: typeof AppClassementRoute
+  AppCommunauteRoute: typeof AppCommunauteRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDefisRoute: typeof AppDefisRoute
+  AppOpportunitesRoute: typeof AppOpportunitesRoute
+  AppParametresRoute: typeof AppParametresRoute
+  AppProfilRoute: typeof AppProfilRoute
+  AppRessourcesRoute: typeof AppRessourcesRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAcademieRoute: AppAcademieRoute,
+  AppCertificatsRoute: AppCertificatsRoute,
+  AppClassementRoute: AppClassementRoute,
+  AppCommunauteRoute: AppCommunauteRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppDefisRoute: AppDefisRoute,
+  AppOpportunitesRoute: AppOpportunitesRoute,
+  AppParametresRoute: AppParametresRoute,
+  AppProfilRoute: AppProfilRoute,
+  AppRessourcesRoute: AppRessourcesRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
