@@ -22,7 +22,7 @@ function ParcoursPage() {
   const p = Route.useLoaderData();
   const { state } = useAcademyStore();
 
-  const done = p.courses.filter((c) => (state.progress[c.id] ?? 0) >= 100).length;
+  const done = p.courses.filter((c: { id: string }) => (state.progress[c.id] ?? 0) >= 100).length;
   const pct = Math.round((done / p.courses.length) * 100);
 
   return (
@@ -83,7 +83,7 @@ function ParcoursPage() {
       <section>
         <h2 className="mb-4 font-display text-lg font-bold uppercase tracking-wide">Modules du parcours</h2>
         <ol className="space-y-3">
-          {p.courses.map((c, i) => {
+          {p.courses.map((c: typeof p.courses[number], i: number) => {
             const prog = state.progress[c.id] ?? 0;
             const completed = prog >= 100;
             const locked = i > 0 && (state.progress[p.courses[i - 1].id] ?? 0) < 100 && prog === 0;
