@@ -22,6 +22,11 @@ import { Route as AppCommunauteRouteImport } from './routes/_app.communaute'
 import { Route as AppClassementRouteImport } from './routes/_app.classement'
 import { Route as AppCertificatsRouteImport } from './routes/_app.certificats'
 import { Route as AppAcademieRouteImport } from './routes/_app.academie'
+import { Route as AppAcademieIndexRouteImport } from './routes/_app.academie.index'
+import { Route as AppAcademieHistoriqueRouteImport } from './routes/_app.academie.historique'
+import { Route as AppAcademieFavorisRouteImport } from './routes/_app.academie.favoris'
+import { Route as AppAcademieParcoursIdRouteImport } from './routes/_app.academie.parcours.$id'
+import { Route as AppAcademieCoursIdRouteImport } from './routes/_app.academie.cours.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -87,11 +92,36 @@ const AppAcademieRoute = AppAcademieRouteImport.update({
   path: '/academie',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAcademieIndexRoute = AppAcademieIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAcademieRoute,
+} as any)
+const AppAcademieHistoriqueRoute = AppAcademieHistoriqueRouteImport.update({
+  id: '/historique',
+  path: '/historique',
+  getParentRoute: () => AppAcademieRoute,
+} as any)
+const AppAcademieFavorisRoute = AppAcademieFavorisRouteImport.update({
+  id: '/favoris',
+  path: '/favoris',
+  getParentRoute: () => AppAcademieRoute,
+} as any)
+const AppAcademieParcoursIdRoute = AppAcademieParcoursIdRouteImport.update({
+  id: '/parcours/$id',
+  path: '/parcours/$id',
+  getParentRoute: () => AppAcademieRoute,
+} as any)
+const AppAcademieCoursIdRoute = AppAcademieCoursIdRouteImport.update({
+  id: '/cours/$id',
+  path: '/cours/$id',
+  getParentRoute: () => AppAcademieRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/academie': typeof AppAcademieRoute
+  '/academie': typeof AppAcademieRouteWithChildren
   '/certificats': typeof AppCertificatsRoute
   '/classement': typeof AppClassementRoute
   '/communaute': typeof AppCommunauteRoute
@@ -101,11 +131,15 @@ export interface FileRoutesByFullPath {
   '/parametres': typeof AppParametresRoute
   '/profil': typeof AppProfilRoute
   '/ressources': typeof AppRessourcesRoute
+  '/academie/favoris': typeof AppAcademieFavorisRoute
+  '/academie/historique': typeof AppAcademieHistoriqueRoute
+  '/academie/': typeof AppAcademieIndexRoute
+  '/academie/cours/$id': typeof AppAcademieCoursIdRoute
+  '/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/academie': typeof AppAcademieRoute
   '/certificats': typeof AppCertificatsRoute
   '/classement': typeof AppClassementRoute
   '/communaute': typeof AppCommunauteRoute
@@ -115,13 +149,18 @@ export interface FileRoutesByTo {
   '/parametres': typeof AppParametresRoute
   '/profil': typeof AppProfilRoute
   '/ressources': typeof AppRessourcesRoute
+  '/academie/favoris': typeof AppAcademieFavorisRoute
+  '/academie/historique': typeof AppAcademieHistoriqueRoute
+  '/academie': typeof AppAcademieIndexRoute
+  '/academie/cours/$id': typeof AppAcademieCoursIdRoute
+  '/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/academie': typeof AppAcademieRoute
+  '/_app/academie': typeof AppAcademieRouteWithChildren
   '/_app/certificats': typeof AppCertificatsRoute
   '/_app/classement': typeof AppClassementRoute
   '/_app/communaute': typeof AppCommunauteRoute
@@ -131,6 +170,11 @@ export interface FileRoutesById {
   '/_app/parametres': typeof AppParametresRoute
   '/_app/profil': typeof AppProfilRoute
   '/_app/ressources': typeof AppRessourcesRoute
+  '/_app/academie/favoris': typeof AppAcademieFavorisRoute
+  '/_app/academie/historique': typeof AppAcademieHistoriqueRoute
+  '/_app/academie/': typeof AppAcademieIndexRoute
+  '/_app/academie/cours/$id': typeof AppAcademieCoursIdRoute
+  '/_app/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,11 +191,15 @@ export interface FileRouteTypes {
     | '/parametres'
     | '/profil'
     | '/ressources'
+    | '/academie/favoris'
+    | '/academie/historique'
+    | '/academie/'
+    | '/academie/cours/$id'
+    | '/academie/parcours/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/academie'
     | '/certificats'
     | '/classement'
     | '/communaute'
@@ -161,6 +209,11 @@ export interface FileRouteTypes {
     | '/parametres'
     | '/profil'
     | '/ressources'
+    | '/academie/favoris'
+    | '/academie/historique'
+    | '/academie'
+    | '/academie/cours/$id'
+    | '/academie/parcours/$id'
   id:
     | '__root__'
     | '/'
@@ -176,6 +229,11 @@ export interface FileRouteTypes {
     | '/_app/parametres'
     | '/_app/profil'
     | '/_app/ressources'
+    | '/_app/academie/favoris'
+    | '/_app/academie/historique'
+    | '/_app/academie/'
+    | '/_app/academie/cours/$id'
+    | '/_app/academie/parcours/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -277,11 +335,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAcademieRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/academie/': {
+      id: '/_app/academie/'
+      path: '/'
+      fullPath: '/academie/'
+      preLoaderRoute: typeof AppAcademieIndexRouteImport
+      parentRoute: typeof AppAcademieRoute
+    }
+    '/_app/academie/historique': {
+      id: '/_app/academie/historique'
+      path: '/historique'
+      fullPath: '/academie/historique'
+      preLoaderRoute: typeof AppAcademieHistoriqueRouteImport
+      parentRoute: typeof AppAcademieRoute
+    }
+    '/_app/academie/favoris': {
+      id: '/_app/academie/favoris'
+      path: '/favoris'
+      fullPath: '/academie/favoris'
+      preLoaderRoute: typeof AppAcademieFavorisRouteImport
+      parentRoute: typeof AppAcademieRoute
+    }
+    '/_app/academie/parcours/$id': {
+      id: '/_app/academie/parcours/$id'
+      path: '/parcours/$id'
+      fullPath: '/academie/parcours/$id'
+      preLoaderRoute: typeof AppAcademieParcoursIdRouteImport
+      parentRoute: typeof AppAcademieRoute
+    }
+    '/_app/academie/cours/$id': {
+      id: '/_app/academie/cours/$id'
+      path: '/cours/$id'
+      fullPath: '/academie/cours/$id'
+      preLoaderRoute: typeof AppAcademieCoursIdRouteImport
+      parentRoute: typeof AppAcademieRoute
+    }
   }
 }
 
+interface AppAcademieRouteChildren {
+  AppAcademieFavorisRoute: typeof AppAcademieFavorisRoute
+  AppAcademieHistoriqueRoute: typeof AppAcademieHistoriqueRoute
+  AppAcademieIndexRoute: typeof AppAcademieIndexRoute
+  AppAcademieCoursIdRoute: typeof AppAcademieCoursIdRoute
+  AppAcademieParcoursIdRoute: typeof AppAcademieParcoursIdRoute
+}
+
+const AppAcademieRouteChildren: AppAcademieRouteChildren = {
+  AppAcademieFavorisRoute: AppAcademieFavorisRoute,
+  AppAcademieHistoriqueRoute: AppAcademieHistoriqueRoute,
+  AppAcademieIndexRoute: AppAcademieIndexRoute,
+  AppAcademieCoursIdRoute: AppAcademieCoursIdRoute,
+  AppAcademieParcoursIdRoute: AppAcademieParcoursIdRoute,
+}
+
+const AppAcademieRouteWithChildren = AppAcademieRoute._addFileChildren(
+  AppAcademieRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAcademieRoute: typeof AppAcademieRoute
+  AppAcademieRoute: typeof AppAcademieRouteWithChildren
   AppCertificatsRoute: typeof AppCertificatsRoute
   AppClassementRoute: typeof AppClassementRoute
   AppCommunauteRoute: typeof AppCommunauteRoute
@@ -294,7 +407,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAcademieRoute: AppAcademieRoute,
+  AppAcademieRoute: AppAcademieRouteWithChildren,
   AppCertificatsRoute: AppCertificatsRoute,
   AppClassementRoute: AppClassementRoute,
   AppCommunauteRoute: AppCommunauteRoute,
