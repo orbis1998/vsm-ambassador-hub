@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_app/academie/cours/$id")({
 type Tab = "overview" | "lessons" | "downloads" | "quiz" | "mission" | "notes" | "comments";
 
 function CoursePage() {
-  const course = Route.useLoaderData();
+  const course = Route.useLoaderData() as NonNullable<Awaited<ReturnType<typeof academyApi.getCourseById>>>;
   const ctx = findCourse(course.id)!;
   const { parcours } = ctx;
   const idx = parcours.courses.findIndex((c) => c.id === course.id);

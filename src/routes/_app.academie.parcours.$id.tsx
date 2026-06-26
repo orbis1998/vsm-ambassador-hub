@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_app/academie/parcours/$id")({
 });
 
 function ParcoursPage() {
-  const p = Route.useLoaderData();
+  const p = Route.useLoaderData() as NonNullable<Awaited<ReturnType<typeof academyApi.getParcoursById>>>;
   const { state } = useAcademyStore();
 
   const done = p.courses.filter((c: { id: string }) => (state.progress[c.id] ?? 0) >= 100).length;
