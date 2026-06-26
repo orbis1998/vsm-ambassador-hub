@@ -21,7 +21,6 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCommunauteRouteImport } from './routes/_app.communaute'
 import { Route as AppClassementRouteImport } from './routes/_app.classement'
 import { Route as AppCertificatsRouteImport } from './routes/_app.certificats'
-import { Route as AppAcademieRouteImport } from './routes/_app.academie'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -82,16 +81,10 @@ const AppCertificatsRoute = AppCertificatsRouteImport.update({
   path: '/certificats',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAcademieRoute = AppAcademieRouteImport.update({
-  id: '/academie',
-  path: '/academie',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/academie': typeof AppAcademieRoute
   '/certificats': typeof AppCertificatsRoute
   '/classement': typeof AppClassementRoute
   '/communaute': typeof AppCommunauteRoute
@@ -105,7 +98,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/academie': typeof AppAcademieRoute
   '/certificats': typeof AppCertificatsRoute
   '/classement': typeof AppClassementRoute
   '/communaute': typeof AppCommunauteRoute
@@ -121,7 +113,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/academie': typeof AppAcademieRoute
   '/_app/certificats': typeof AppCertificatsRoute
   '/_app/classement': typeof AppClassementRoute
   '/_app/communaute': typeof AppCommunauteRoute
@@ -137,7 +128,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/academie'
     | '/certificats'
     | '/classement'
     | '/communaute'
@@ -151,7 +141,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/academie'
     | '/certificats'
     | '/classement'
     | '/communaute'
@@ -166,7 +155,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/academie'
     | '/_app/certificats'
     | '/_app/classement'
     | '/_app/communaute'
@@ -270,18 +258,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCertificatsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/academie': {
-      id: '/_app/academie'
-      path: '/academie'
-      fullPath: '/academie'
-      preLoaderRoute: typeof AppAcademieRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
 interface AppRouteChildren {
-  AppAcademieRoute: typeof AppAcademieRoute
   AppCertificatsRoute: typeof AppCertificatsRoute
   AppClassementRoute: typeof AppClassementRoute
   AppCommunauteRoute: typeof AppCommunauteRoute
@@ -294,7 +274,6 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAcademieRoute: AppAcademieRoute,
   AppCertificatsRoute: AppCertificatsRoute,
   AppClassementRoute: AppClassementRoute,
   AppCommunauteRoute: AppCommunauteRoute,
@@ -316,13 +295,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
