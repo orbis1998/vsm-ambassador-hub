@@ -176,7 +176,7 @@ export function PostCard({ post }: { post: Post }) {
 
 function CommentsSection({ postId }: { postId: string }) {
   const [items, setItems] = useState<Awaited<ReturnType<typeof socialApi.getCommentsForPost>>>([]);
-  useState(() => { socialApi.getCommentsForPost(postId).then(setItems); return 0; });
+  useEffect(() => { socialApi.getCommentsForPost(postId).then(setItems); }, [postId]);
   return (
     <ul className="space-y-3 border-t border-border bg-background/40 p-4">
       {items.map((c) => {
