@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bookmark, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
 import { REACTIONS, type Post, type ReactionKey, socialApi } from "@/lib/social-data";
