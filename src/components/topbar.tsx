@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, MessageSquare, Search, Menu, ChevronDown } from "lucide-react";
 import { currentUser, notifications } from "@/lib/mock-data";
+
 
 interface Props {
   onMenuClick: () => void;
@@ -8,6 +10,7 @@ interface Props {
 
 export function Topbar({ onMenuClick }: Props) {
   const [open, setOpen] = useState<"notif" | "user" | null>(null);
+  const navigate = useNavigate();
   const unread = notifications.filter((n) => n.unread).length;
 
   return (
@@ -20,23 +23,29 @@ export function Topbar({ onMenuClick }: Props) {
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="relative hidden flex-1 max-w-md md:block">
+      <form
+        onSubmit={(e) => { e.preventDefault(); navigate({ to: "/recherche" }); }}
+        className="relative hidden flex-1 max-w-md md:block"
+      >
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
+          onFocus={() => navigate({ to: "/recherche" })}
           placeholder="Rechercher un cours, un ambassadeur…"
           className="h-10 w-full rounded-lg border border-border bg-surface pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-vsm-red/50 focus:ring-2 focus:ring-vsm-red/20"
         />
-      </div>
+      </form>
 
       <div className="ml-auto flex items-center gap-1.5">
-        <button
+        <Link
+          to="/messages"
           className="relative grid h-10 w-10 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label="Messages"
         >
           <MessageSquare className="h-[18px] w-[18px]" />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-vsm-red" />
-        </button>
+        </Link>
+
 
         <div className="relative">
           <button
@@ -71,9 +80,11 @@ export function Topbar({ onMenuClick }: Props) {
                   </li>
                 ))}
               </ul>
+              <Link to="/notifications" className="block border-t border-border px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-vsm-red hover:bg-accent">Voir toutes les notifications</Link>
             </div>
           )}
         </div>
+
 
         <div className="relative ml-2">
           <button
