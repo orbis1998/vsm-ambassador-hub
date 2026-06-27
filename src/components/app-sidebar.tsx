@@ -3,13 +3,17 @@ import {
   Home,
   GraduationCap,
   Users,
+  MessageSquare,
   Trophy,
   Crown,
   Sparkles,
   Award,
   BookOpen,
+  Bell,
+  Search,
   User,
   Settings,
+  Shield,
   LogOut,
 } from "lucide-react";
 import { VsmLogo } from "./vsm-logo";
@@ -20,14 +24,19 @@ const items = [
   { to: "/dashboard", label: "Accueil", icon: Home },
   { to: "/academie", label: "Académie", icon: GraduationCap },
   { to: "/communaute", label: "Communauté", icon: Users },
+  { to: "/messages", label: "Messages", icon: MessageSquare },
   { to: "/defis", label: "Défis", icon: Trophy },
   { to: "/classement", label: "Classement", icon: Crown },
   { to: "/opportunites", label: "Opportunités", icon: Sparkles },
   { to: "/certificats", label: "Certificats", icon: Award },
   { to: "/ressources", label: "Ressources", icon: BookOpen },
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/recherche", label: "Recherche", icon: Search },
   { to: "/profil", label: "Profil", icon: User },
   { to: "/parametres", label: "Paramètres", icon: Settings },
+  { to: "/admin", label: "Admin", icon: Shield },
 ] as const;
+
 
 interface Props {
   onNavigate?: () => void;

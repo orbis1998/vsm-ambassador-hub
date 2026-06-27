@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, MessageSquare, Search, Menu, ChevronDown } from "lucide-react";
 import { currentUser, notifications } from "@/lib/mock-data";
+
 
 interface Props {
   onMenuClick: () => void;
