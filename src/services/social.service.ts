@@ -97,11 +97,26 @@ async function fetchSavedPostIds(userId: string, postIds: string[]): Promise<Set
   return set;
 }
 
+async function fetchPostViewCounts(postIds: string[]): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (!postIds.length) return map;
+  const supabase = socialDb();
+  const { data, error } = await supabase.from("social_post_views").select("post_id").in("post_id", postIds);
+  if (error) return map;
+  for (const id of postIds) map.set(id, 0);
+  for (const row of data ?? []) {
+    const pid = (row as { post_id: string }).post_id;
+    map.set(pid, (map.get(pid) ?? 0) + 1);
+  }
+  return map;
+}
+
 function mapPostRow(
   row: PostRow,
   reactions: Record<ReactionKey, number>,
   saved: boolean,
   myReaction: ReactionKey | null | undefined,
+  viewCount = 0,
 ): Post {
   return {
     id: row.id,
@@ -112,6 +127,7 @@ function mapPostRow(
     reactions,
     comments_count: row.comments_count,
     shares: row.shares_count,
+    view_count: viewCount,
     saved,
     my_reaction: myReaction ?? null,
     group_id: row.group_id,
@@ -122,10 +138,11 @@ function mapPostRow(
 async function enrichPosts(rows: PostRow[], userId?: string): Promise<Post[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [reactionMap, myReactions, savedSet] = await Promise.all([
+  const [reactionMap, myReactions, savedSet, viewMap] = await Promise.all([
     aggregateReactions(ids),
     userId ? fetchUserReactions(userId, ids) : Promise.resolve(new Map()),
     userId ? fetchSavedPostIds(userId, ids) : Promise.resolve(new Set<string>()),
+    fetchPostViewCounts(ids),
   ]);
 
   const posts = rows.map((row) =>
@@ -134,6 +151,7 @@ async function enrichPosts(rows: PostRow[], userId?: string): Promise<Post[]> {
       reactionMap.get(row.id) ?? { ...EMPTY_REACTIONS },
       savedSet.has(row.id),
       userId ? myReactions.get(row.id) : null,
+      viewMap.get(row.id) ?? 0,
     ),
   );
 
@@ -244,14 +262,30 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
 
   let viewedIds = new Set<string>();
   let likedMap = new Map<string, boolean>();
+  let viewCounts = new Map<string, number>();
+  let likeCounts = new Map<string, number>();
   if (userId && data?.length) {
     const storyIds = data.map((s) => (s as { id: string }).id);
-    const [{ data: views }, likes] = await Promise.all([
+    const [{ data: views }, likes, { data: allViews }, { data: allLikes }] = await Promise.all([
       supabase.from("social_story_views").select("story_id").eq("viewer_id", userId).in("story_id", storyIds),
       fetchStoryLikeState(userId, storyIds),
+      supabase.from("social_story_views").select("story_id").in("story_id", storyIds),
+      supabase.from("social_story_likes").select("story_id").in("story_id", storyIds),
     ]);
     viewedIds = new Set((views ?? []).map((v) => (v as { story_id: string }).story_id));
     likedMap = likes;
+    for (const id of storyIds) {
+      viewCounts.set(id, 0);
+      likeCounts.set(id, 0);
+    }
+    for (const row of allViews ?? []) {
+      const sid = (row as { story_id: string }).story_id;
+      viewCounts.set(sid, (viewCounts.get(sid) ?? 0) + 1);
+    }
+    for (const row of allLikes ?? []) {
+      const sid = (row as { story_id: string }).story_id;
+      likeCounts.set(sid, (likeCounts.get(sid) ?? 0) + 1);
+    }
   }
 
   return (data ?? []).map((s) => {
@@ -265,6 +299,8 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
       caption: row.caption,
       viewed: viewedIds.has(row.id),
       liked: likedMap.get(row.id) ?? false,
+      view_count: viewCounts.get(row.id) ?? 0,
+      like_count: likeCounts.get(row.id) ?? 0,
     };
   });
 }
@@ -670,6 +706,45 @@ export async function fetchFollowingCount(userId: string): Promise<number> {
 export async function fetchFollowStats(userId: string): Promise<{ followers: number; following: number }> {
   const [followers, following] = await Promise.all([fetchFollowerCount(userId), fetchFollowingCount(userId)]);
   return { followers, following };
+}
+
+export async function fetchStoryById(storyId: string): Promise<Story | null> {
+  const supabase = socialDb();
+  const { data, error } = await supabase.from("social_stories").select("*").eq("id", storyId).maybeSingle();
+  if (error || !data) return null;
+  const row = data as { id: string; author_id: string; created_at: string; expires_at: string; media_url: string; caption?: string };
+  return {
+    id: row.id,
+    author_id: row.author_id,
+    created_at: row.created_at,
+    expires_at: row.expires_at,
+    media_url: row.media_url,
+    caption: row.caption,
+    viewed: true,
+  };
+}
+
+export async function recordPostView(userId: string, postId: string): Promise<void> {
+  const supabase = socialDb();
+  const { error } = await supabase.from("social_post_views").upsert(
+    { post_id: postId, viewer_id: userId, viewed_at: new Date().toISOString() },
+    { onConflict: "post_id,viewer_id" },
+  );
+  if (error && !isMissingTable(error)) throw error;
+}
+
+export async function blockUser(blockerId: string, blockedId: string): Promise<void> {
+  const { error } = await socialDb().from("social_blocks").upsert({ blocker_id: blockerId, blocked_id: blockedId });
+  if (error && !isMissingTable(error)) throw error;
+}
+
+export async function reportPost(reporterId: string, postId: string, reason?: string): Promise<void> {
+  const { error } = await socialDb().from("social_reports").insert({
+    reporter_id: reporterId,
+    post_id: postId,
+    reason: reason?.trim() || null,
+  });
+  if (error && !isMissingTable(error)) throw error;
 }
 
 export async function replyToStory(

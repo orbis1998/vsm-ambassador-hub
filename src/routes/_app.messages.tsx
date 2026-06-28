@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Phone, Search, Loader2, MessageSquare, CheckCheck } from "lucide-react";
+import { Phone, Search, Loader2, MessageSquare, CheckCheck, MoreVertical } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useAmbassador } from "@/hooks/use-social";
 import {
@@ -11,7 +12,9 @@ import {
 } from "@/hooks/use-messaging";
 import { useAudioCall } from "@/hooks/use-audio-call";
 import { MessageComposer } from "@/components/message-composer";
+import { AudioCallOverlay } from "@/components/audio-call-overlay";
 import { formatRelativeTime } from "@/services/ambassador.service";
+import { fetchStoryById } from "@/services/social.service";
 import { profileAvatarUrl } from "@/lib/program-tier";
 import type { Conversation, Message } from "@/types/messaging";
 
@@ -35,10 +38,11 @@ function MessagesPage() {
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [msgSearch, setMsgSearch] = useState("");
+  const [callMinimized, setCallMinimized] = useState(false);
   const openedRef = useRef(false);
 
   const { data: conversations = [], isLoading: loadingConversations } = useConversations();
-  const { send, sendMedia, sendVoice, react, openDirect, notifyTyping } = useMessagingMutations();
+  const { send, sendMedia, sendVoice, react, edit, deleteForAll, deleteForMe, openDirect, notifyTyping } = useMessagingMutations();
   const { messages, isLoading: loadingMessages, reactions, typingUser } = useMessages(activeId ?? undefined);
 
   const active = conversations.find((c) => c.id === activeId);
@@ -69,10 +73,8 @@ function MessagesPage() {
   }, [withUserId, profile?.userId, conversations, storyParam]);
 
   useEffect(() => {
-    if (storyParam && activeId && draft === "" && !replyTo) {
-      setDraft("Réponse à votre story : ");
-    }
-  }, [storyParam, activeId]);
+    if (call.state === "active" || call.state === "connecting") setCallMinimized(false);
+  }, [call.state]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return conversations;
@@ -113,11 +115,21 @@ function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto h-[calc(100dvh-7rem)] max-w-6xl overflow-hidden rounded-2xl border border-border bg-surface md:h-[calc(100vh-9rem)]">
+    <div className="relative mx-auto h-[calc(100dvh-7rem)] max-w-6xl overflow-hidden rounded-2xl border border-border bg-surface md:h-[calc(100vh-9rem)]">
       <audio ref={call.remoteAudioRef} autoPlay playsInline className="hidden" />
-      {call.state !== "idle" && (
-        <CallBanner state={call.state} onAccept={() => void call.acceptCall()} onHangUp={() => void call.hangUp()} />
-      )}
+      <AudioCallOverlay
+        state={call.state}
+        peerName={displayTitle}
+        peerAvatar={otherUser?.avatar}
+        minimized={callMinimized}
+        speakerOn={call.speakerOn}
+        muted={call.muted}
+        onAccept={() => void call.acceptCall()}
+        onHangUp={() => void call.hangUp()}
+        onToggleSpeaker={call.toggleSpeaker}
+        onToggleMute={call.toggleMute}
+        onMinimize={() => setCallMinimized(true)}
+      />
       <div className="grid h-full grid-cols-1 md:grid-cols-[320px_1fr]">
         <aside className={`flex flex-col border-r border-border ${activeId ? "hidden md:flex" : "flex"}`}>
           <div className="border-b border-border p-4">
@@ -198,8 +210,12 @@ function MessagesPage() {
                       message={m}
                       isMine={m.author_id === profile?.userId}
                       reactions={reactions.get(m.id) ?? []}
+                      conversationId={activeId!}
                       onReply={() => setReplyTo(m)}
                       onReact={(emoji, has) => react.mutate({ messageId: m.id, emoji, has })}
+                      onEdit={(body) => edit.mutate({ messageId: m.id, body, conversationId: activeId! })}
+                      onDeleteForAll={() => deleteForAll.mutate({ messageId: m.id, conversationId: activeId! })}
+                      onDeleteForMe={() => deleteForMe.mutate({ messageId: m.id, conversationId: activeId! })}
                     />
                   ))
                 )}
@@ -224,15 +240,101 @@ function MessagesPage() {
   );
 }
 
-function CallBanner({ state, onAccept, onHangUp }: { state: string; onAccept: () => void; onHangUp: () => void }) {
+function MessageBubble({
+  message: m,
+  isMine,
+  reactions: rx,
+  onReply,
+  onReact,
+  onEdit,
+  onDeleteForAll,
+  onDeleteForMe,
+}: {
+  message: Message;
+  isMine?: boolean;
+  reactions: string[];
+  conversationId: string;
+  onReply: () => void;
+  onReact: (emoji: string, has: boolean) => void;
+  onEdit: (body: string) => void;
+  onDeleteForAll: () => void;
+  onDeleteForMe: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editBody, setEditBody] = useState(m.body);
+  const { data: story } = useQuery({
+    queryKey: ["story-reply", m.story_id],
+    queryFn: () => fetchStoryById(m.story_id!),
+    enabled: !!m.story_id,
+  });
+  const url = String(m.metadata?.url ?? "");
+  const read = isMine && (m.read_by?.length ?? 0) > 1;
+  const deleted = m.deleted_for_all;
+
   return (
-    <div className="flex items-center justify-between border-b border-vsm-red/30 bg-vsm-red/10 px-4 py-2 text-sm">
-      <span>{state === "ringing" ? "Appel entrant…" : state === "active" ? "Appel en cours" : "Connexion…"}</span>
-      <div className="flex gap-2">
-        {state === "ringing" && (
-          <button type="button" onClick={onAccept} className="rounded-lg bg-vsm-red px-3 py-1 text-xs font-bold text-white">Répondre</button>
+    <div className={`group flex ${isMine ? "justify-end" : "justify-start"}`}>
+      <div className={`relative max-w-[85%] rounded-2xl px-3 py-2 text-sm ${isMine ? "bg-vsm-red text-white" : "border border-border bg-background"}`}>
+        {m.story_id && story && (
+          <div className={`mb-2 overflow-hidden rounded-lg border ${isMine ? "border-white/30" : "border-border"}`}>
+            {story.media_url.match(/\.(mp4|webm|mov)/i) ? (
+              <video src={story.media_url} className="max-h-32 w-full object-cover" muted />
+            ) : (
+              <img src={story.media_url} alt="" className="max-h-32 w-full object-cover" />
+            )}
+            <p className={`px-2 py-1 text-[10px] uppercase tracking-wider ${isMine ? "text-white/80" : "text-muted-foreground"}`}>Réponse à une story</p>
+          </div>
         )}
-        <button type="button" onClick={onHangUp} className="rounded-lg border border-border px-3 py-1 text-xs font-bold">Raccrocher</button>
+        {deleted ? (
+          <p className="italic opacity-70">Ce message a été supprimé</p>
+        ) : editing ? (
+          <div className="space-y-2">
+            <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} className="w-full rounded-lg border border-border bg-background p-2 text-sm text-foreground" rows={2} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setEditing(false)} className="text-xs underline">Annuler</button>
+              <button type="button" onClick={() => { onEdit(editBody); setEditing(false); }} className="text-xs font-bold underline">Enregistrer</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {m.type === "image" && url && <img src={url} alt="" className="mb-1 max-h-48 rounded-lg object-cover" />}
+            {m.type === "video" && url && <video src={url} controls className="mb-1 max-h-48 rounded-lg" />}
+            {m.type === "voice" && url && <audio src={url} controls className="mb-1 w-full min-w-[200px]" />}
+            {m.type === "doc" && url && (
+              <a href={url} target="_blank" rel="noreferrer" className={`mb-1 block underline ${isMine ? "text-white/90" : "text-vsm-red"}`}>
+                📎 {m.body || "Fichier"}
+              </a>
+            )}
+            {(m.type === "text" || (m.body && !deleted)) && m.type !== "doc" && <p>{m.body}</p>}
+          </>
+        )}
+        <div className={`mt-1 flex flex-wrap items-center gap-2 text-[10px] ${isMine ? "text-white/70" : "text-muted-foreground"}`}>
+          <span>{formatRelativeTime(m.created_at)}{m.edited_at ? " · modifié" : ""}</span>
+          {isMine && read && <CheckCheck className="h-3 w-3" />}
+          {!deleted && (
+            <>
+              <button type="button" onClick={onReply} className="hover:underline">Répondre</button>
+              {["👍", "❤️", "😂"].map((e) => (
+                <button key={e} type="button" onClick={() => onReact(e, rx.includes(e))} className="hover:scale-110">{e}</button>
+              ))}
+            </>
+          )}
+        </div>
+        {rx.length > 0 && <p className="mt-1 text-xs">{rx.join("")}</p>}
+        <button type="button" onClick={() => setMenuOpen((v) => !v)} className={`absolute -right-1 top-1 grid h-6 w-6 place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100 ${isMine ? "text-white/80" : "text-muted-foreground"}`}>
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+        {menuOpen && (
+          <div className={`absolute z-10 min-w-[160px] rounded-lg border py-1 text-xs shadow-lg ${isMine ? "right-0 top-6 border-white/20 bg-vsm-red" : "left-0 top-6 border-border bg-popover text-foreground"}`}>
+            {isMine && m.type === "text" && !deleted && (
+              <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { setEditing(true); setMenuOpen(false); }}>Modifier</button>
+            )}
+            {isMine && !deleted && (
+              <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { onDeleteForAll(); setMenuOpen(false); }}>Supprimer pour tous</button>
+            )}
+            <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { onDeleteForMe(); setMenuOpen(false); }}>Supprimer pour moi</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -271,48 +373,5 @@ function ConversationListItem({
         )}
       </button>
     </li>
-  );
-}
-
-function MessageBubble({
-  message: m,
-  isMine,
-  reactions: rx,
-  onReply,
-  onReact,
-}: {
-  message: Message;
-  isMine?: boolean;
-  reactions: string[];
-  onReply: () => void;
-  onReact: (emoji: string, has: boolean) => void;
-}) {
-  const url = String(m.metadata?.url ?? "");
-  const read = isMine && (m.read_by?.length ?? 0) > 1;
-
-  return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${isMine ? "bg-vsm-red text-white" : "border border-border bg-background"}`}>
-        {m.type === "image" && url && <img src={url} alt="" className="mb-1 max-h-48 rounded-lg object-cover" />}
-        {m.type === "video" && url && <video src={url} controls className="mb-1 max-h-48 rounded-lg" />}
-        {m.type === "voice" && url && <audio src={url} controls className="mb-1 w-full min-w-[200px]" />}
-        {m.type === "doc" && url && (
-          <a href={url} target="_blank" rel="noreferrer" className={`mb-1 block underline ${isMine ? "text-white/90" : "text-vsm-red"}`}>
-            📎 {m.body || "Fichier"}
-          </a>
-        )}
-        {m.type === "text" && <p>{m.body}</p>}
-        {m.type !== "text" && m.type !== "doc" && m.body && m.type !== "image" && m.type !== "video" && m.type !== "voice" && <p className="text-xs opacity-80">{m.body}</p>}
-        <div className={`mt-1 flex flex-wrap items-center gap-2 text-[10px] ${isMine ? "text-white/70" : "text-muted-foreground"}`}>
-          <span>{formatRelativeTime(m.created_at)}</span>
-          {isMine && read && <CheckCheck className="h-3 w-3" />}
-          <button type="button" onClick={onReply} className="hover:underline">Répondre</button>
-          {["👍", "❤️", "😂"].map((e) => (
-            <button key={e} type="button" onClick={() => onReact(e, rx.includes(e))} className="hover:scale-110">{e}</button>
-          ))}
-        </div>
-        {rx.length > 0 && <p className="mt-1 text-xs">{rx.join("")}</p>}
-      </div>
-    </div>
   );
 }

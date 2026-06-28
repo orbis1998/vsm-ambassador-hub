@@ -4,6 +4,7 @@ import {
   getLocalAudioStream,
   sendCallSignal,
   subscribeCallSignals,
+  closeCallChannel,
   type CallSignal,
 } from "@/services/call.service";
 
@@ -11,6 +12,8 @@ export type CallState = "idle" | "ringing" | "connecting" | "active" | "ended";
 
 export function useAudioCall(conversationId: string | undefined, userId: string | undefined, otherUserId: string | undefined) {
   const [state, setState] = useState<CallState>("idle");
+  const [speakerOn, setSpeakerOn] = useState(true);
+  const [muted, setMuted] = useState(false);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -113,7 +116,24 @@ export function useAudioCall(conversationId: string | undefined, userId: string 
       await sendCallSignal(conversationId, { type: "hangup", from: userId });
     }
     cleanup();
+    if (conversationId) closeCallChannel(conversationId);
   }, [conversationId, userId, cleanup]);
 
-  return { state, startCall, acceptCall, hangUp, remoteAudioRef, cleanup };
+  const toggleSpeaker = useCallback(() => {
+    setSpeakerOn((v) => {
+      const next = !v;
+      if (remoteAudioRef.current) remoteAudioRef.current.muted = !next;
+      return next;
+    });
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted((v) => {
+      const next = !v;
+      localStreamRef.current?.getAudioTracks().forEach((t) => { t.enabled = !next; });
+      return next;
+    });
+  }, []);
+
+  return { state, startCall, acceptCall, hangUp, remoteAudioRef, cleanup, speakerOn, muted, toggleSpeaker, toggleMute };
 }

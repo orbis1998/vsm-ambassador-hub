@@ -7,6 +7,9 @@ interface ImportMetaEnv {
   readonly VITE_AMBASSADOR_PROGRAM_URL?: string;
   readonly VITE_ACADEMY_URL?: string;
   readonly VITE_VAPID_PUBLIC_KEY?: string;
+  readonly VITE_TURN_URL?: string;
+  readonly VITE_TURN_USERNAME?: string;
+  readonly VITE_TURN_CREDENTIAL?: string;
   readonly VITE_FCM_API_KEY?: string;
   readonly VITE_FCM_PROJECT_ID?: string;
   readonly VITE_FCM_MESSAGING_SENDER_ID?: string;

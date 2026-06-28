@@ -6,11 +6,16 @@ import { useSocialStore } from "@/lib/social-store";
 import { profileAvatarUrl } from "@/lib/program-tier";
 import { useProfileEdit } from "@/hooks/use-profile-edit";
 import {
+  fetchNotificationPreferences,
+  saveNotificationPreferences as saveDbNotificationPreferences,
+} from "@/services/notifications.service";
+import {
   getNotificationPreferences,
   isPushSupported,
   registerPushSubscription,
   saveNotificationPreferences,
   unregisterPushSubscription,
+  type NotificationChannel,
 } from "@/lib/notifications/push-manager";
 import { toast } from "sonner";
 
@@ -39,7 +44,13 @@ function SettingsPage() {
   const [country, setCountry] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPrefs, setPushPrefs] = useState(getNotificationPreferences());
+  const [channelPrefs, setChannelPrefs] = useState<Record<NotificationChannel, boolean> | null>(null);
 
+  useEffect(() => {
+    if (profile?.userId) {
+      void fetchNotificationPreferences(profile.userId).then(setChannelPrefs);
+    }
+  }, [profile?.userId]);
   useEffect(() => {
     if (profile) {
       setBio(profile.bio ?? "");
@@ -201,6 +212,26 @@ function SettingsPage() {
                   className="h-4 w-4 accent-vsm-red"
                 />
               </label>
+              {channelPrefs && (
+                <div className="space-y-2 border-t border-border pt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Types de notifications Academy</p>
+                  {(Object.keys(channelPrefs) as NotificationChannel[]).map((ch) => (
+                    <label key={ch} className="flex items-center justify-between gap-4 text-sm capitalize">
+                      <span>{ch}</span>
+                      <input
+                        type="checkbox"
+                        checked={channelPrefs[ch]}
+                        onChange={(e) => {
+                          const next = { ...channelPrefs, [ch]: e.target.checked };
+                          setChannelPrefs(next);
+                          if (profile?.userId) void saveDbNotificationPreferences(profile.userId, next);
+                        }}
+                        className="h-4 w-4 accent-vsm-red"
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

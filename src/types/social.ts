@@ -35,6 +35,7 @@ export interface Post {
   reactions: Record<ReactionKey, number>;
   comments_count: number;
   shares: number;
+  view_count?: number;
   saved: boolean;
   my_reaction?: ReactionKey | null;
   group_id?: string | null;
@@ -50,6 +51,8 @@ export interface Story {
   caption?: string;
   viewed: boolean;
   liked?: boolean;
+  view_count?: number;
+  like_count?: number;
 }
 
 export interface Comment {

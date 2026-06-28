@@ -5,6 +5,9 @@ import {
   fetchConversations,
   fetchLastSeen,
   fetchMessageReactions,
+  editMessage,
+  deleteMessageForAll,
+  deleteMessageForMe,
   fetchMessages,
   getOrCreateDirectConversation,
   markConversationRead,
@@ -64,7 +67,7 @@ export function useMessages(conversationId: string | undefined) {
 
   const query = useQuery({
     queryKey: ["messages", conversationId],
-    queryFn: () => fetchMessages(conversationId!),
+    queryFn: () => fetchMessages(conversationId!, userId),
     enabled: !!conversationId,
     staleTime: 5_000,
   });
@@ -93,7 +96,14 @@ export function useMessages(conversationId: string | undefined) {
 
     const unsubMsg = subscribeToConversationMessages(conversationId, (msg) => {
       setLiveMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id) || query.data?.some((m) => m.id === msg.id)) return prev;
+        const existingIdx = prev.findIndex((m) => m.id === msg.id);
+        const inQuery = query.data?.findIndex((m) => m.id === msg.id) ?? -1;
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = msg;
+          return next;
+        }
+        if (inQuery >= 0) return prev;
         return [...prev, msg];
       });
       if (msg.author_id !== userId) {
@@ -191,6 +201,24 @@ export function useMessagingMutations() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["message-reactions"] }),
   });
 
+  const edit = useMutation({
+    mutationFn: ({ messageId, body }: { messageId: string; body: string }) =>
+      editMessage(userId!, messageId, body),
+    onSuccess: (_, { conversationId: cid }) => invalidate(cid),
+  });
+
+  const deleteForAll = useMutation({
+    mutationFn: ({ messageId }: { messageId: string; conversationId: string }) =>
+      deleteMessageForAll(userId!, messageId),
+    onSuccess: (_, { conversationId: cid }) => invalidate(cid),
+  });
+
+  const deleteForMe = useMutation({
+    mutationFn: ({ messageId }: { messageId: string; conversationId: string }) =>
+      deleteMessageForMe(userId!, messageId),
+    onSuccess: (_, { conversationId: cid }) => invalidate(cid),
+  });
+
   const openDirect = useMutation({
     mutationFn: (otherUserId: string) => getOrCreateDirectConversation(userId!, otherUserId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations", userId] }),
@@ -206,5 +234,5 @@ export function useMessagingMutations() {
     [userId],
   );
 
-  return { send, sendMedia, sendVoice, react, openDirect, notifyTyping };
+  return { send, sendMedia, sendVoice, react, edit, deleteForAll, deleteForMe, openDirect, notifyTyping };
 }

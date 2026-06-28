@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Loader2, Plus, Trash2, Pencil, Check } from "lucide-react";
+import { useState, useRef } from "react";
+import { Loader2, Plus, Trash2, Pencil, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useIsBrowser } from "@/hooks/use-is-browser";
+import { uploadAcademyAsset } from "@/services/storage.service";
 import {
   adminDeleteCourse,
   adminDeleteLesson,
@@ -171,7 +172,16 @@ function CoursesPanel({ courses, onSaved }: { courses: AdminCourseRow[]; onSaved
           <Field label="Titre" value={editing.title ?? ""} onChange={(v) => setEditing({ ...editing, title: v })} />
           <Field label="Slug" value={editing.slug ?? ""} onChange={(v) => setEditing({ ...editing, slug: v })} />
           <Field label="Description" value={editing.description ?? ""} onChange={(v) => setEditing({ ...editing, description: v })} multiline />
-          <Field label="Cover URL" value={editing.cover_url ?? ""} onChange={(v) => setEditing({ ...editing, cover_url: v })} />
+          <Field label="Cover URL (optionnel)" value={editing.cover_url ?? ""} onChange={(v) => setEditing({ ...editing, cover_url: v })} />
+          <FileField
+            label="Importer cover depuis l'appareil"
+            accept="image/*"
+            onFile={async (f) => {
+              const url = await uploadAcademyAsset(f, "covers");
+              setEditing({ ...editing, cover_url: url });
+              toast.success("Cover téléchargée");
+            }}
+          />
           <div className="flex flex-wrap gap-4">
             <Toggle label="Publié" checked={!!editing.is_published} onChange={(v) => setEditing({ ...editing, is_published: v })} />
             <Toggle label="Parcours" checked={!!editing.is_parcours} onChange={(v) => setEditing({ ...editing, is_parcours: v })} />
@@ -263,7 +273,16 @@ function LessonsPanel({
             <FormCard title="Leçon" onClose={() => setEditing(null)}>
               <Field label="Titre" value={editing.title ?? ""} onChange={(v) => setEditing({ ...editing, title: v })} />
               <Field label="Position" value={String(editing.position ?? 1)} onChange={(v) => setEditing({ ...editing, position: Number(v) })} />
-              <Field label="Vidéo URL" value={editing.video_url ?? ""} onChange={(v) => setEditing({ ...editing, video_url: v })} />
+              <Field label="Vidéo URL (optionnel)" value={editing.video_url ?? ""} onChange={(v) => setEditing({ ...editing, video_url: v })} />
+              <FileField
+                label="Télécharger la vidéo depuis l'appareil"
+                accept="video/*"
+                onFile={async (f) => {
+                  const url = await uploadAcademyAsset(f, "lessons");
+                  setEditing({ ...editing, video_url: url });
+                  toast.success("Vidéo téléchargée");
+                }}
+              />
               <Field label="Contenu (markdown)" value={editing.content_md ?? ""} onChange={(v) => setEditing({ ...editing, content_md: v })} multiline />
               <button type="button" disabled={save.isPending} onClick={() => void save.mutate()} className="rounded-lg bg-vsm-red px-4 py-2 text-xs font-bold uppercase text-white">Enregistrer</button>
             </FormCard>
@@ -520,6 +539,37 @@ function FormCard({ title, onClose, children }: { title: string; onClose: () => 
       </div>
       {children}
     </div>
+  );
+}
+
+function FileField({ label, accept, onFile }: { label: string; accept: string; onFile: (f: File) => Promise<void> }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {label}
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => ref.current?.click()}
+        className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-3 text-sm normal-case text-muted-foreground hover:border-vsm-red/50"
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        Choisir un fichier
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setBusy(true);
+          void onFile(f).finally(() => { setBusy(false); e.target.value = ""; });
+        }}
+      />
+    </label>
   );
 }
 

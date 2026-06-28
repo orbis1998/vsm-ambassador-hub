@@ -1,39 +1,54 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import {
   countUnreadMessages,
   countUnreadNotifications,
   fetchNotifications,
+  subscribeToNotifications,
 } from "@/services/notifications.service";
 
-export function useNotifications(limit = 6) {
-  const { profile } = useAuth();
-  const userId = profile?.userId;
+function useAuthUserId(): string | undefined {
+  const { session, profile } = useAuth();
+  return profile?.userId ?? session?.user?.id;
+}
 
-  return useQuery({
+export function useNotifications(limit = 6) {
+  const userId = useAuthUserId();
+  const qc = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["notifications", userId, limit],
     queryFn: () => fetchNotifications(userId!, limit),
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: 10_000,
   });
+
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeToNotifications(userId, () => {
+      qc.invalidateQueries({ queryKey: ["notifications", userId] });
+      qc.invalidateQueries({ queryKey: ["notifications-unread-count", userId] });
+    });
+  }, [userId, qc]);
+
+  return query;
 }
 
 export function useUnreadNotificationCount() {
-  const { profile } = useAuth();
-  const userId = profile?.userId;
+  const userId = useAuthUserId();
 
   return useQuery({
     queryKey: ["notifications-unread-count", userId],
     queryFn: () => countUnreadNotifications(userId!),
     enabled: !!userId,
-    staleTime: 15_000,
-    refetchInterval: 60_000,
+    staleTime: 10_000,
+    refetchInterval: 45_000,
   });
 }
 
 export function useUnreadMessageCount() {
-  const { profile } = useAuth();
-  const userId = profile?.userId;
+  const userId = useAuthUserId();
 
   return useQuery({
     queryKey: ["messages-unread-count", userId],

@@ -272,17 +272,28 @@ export async function fetchProgramAmbassadorProfile(
   authUser?: User | null,
 ): Promise<AmbassadorProfile | null> {
   const cached = readProfileCache(userId);
-  if (cached) return cached;
 
   const metaName =
     typeof authUser?.user_metadata?.full_name === "string"
       ? authUser.user_metadata.full_name
       : undefined;
 
-  const fromRpc = await fetchViaRpc(userId, metaName);
-  const profile = fromRpc ?? (await fetchViaLegacyQueries(userId, authUser));
+  const [freshTier, fromRpc, fromLegacy] = await Promise.all([
+    fetchProgramTier(userId),
+    cached ? Promise.resolve(null) : fetchViaRpc(userId, metaName),
+    cached ? Promise.resolve(null) : fetchViaLegacyQueries(userId, authUser),
+  ]);
 
-  if (profile) writeProfileCache(userId, profile);
+  let profile = cached ?? fromRpc ?? fromLegacy;
+  if (!profile) return null;
+
+  if (profile.level !== freshTier) {
+    profile = { ...profile, level: freshTier };
+    writeProfileCache(userId, profile);
+  } else if (!cached) {
+    writeProfileCache(userId, profile);
+  }
+
   return profile;
 }
 

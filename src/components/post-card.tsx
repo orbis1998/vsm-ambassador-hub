@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { Link } from "@tanstack/react-router";
 
-import { Bookmark, MessageCircle, Share2, MoreHorizontal, Heart, Pencil, Trash2 } from "lucide-react";
+import { Bookmark, MessageCircle, Share2, MoreHorizontal, Heart, Pencil, Trash2, Flag, Ban, Eye } from "lucide-react";
 
 import { REACTIONS, type Comment, type Post, type ReactionKey } from "@/types/social";
 
@@ -28,7 +28,7 @@ export function PostCard({ post }: { post: Post }) {
 
   const { data: author } = useAmbassador(post.author_id);
 
-  const { setReaction, toggleSaved, addComment, sharePost, toggleCommentLike, deletePost, updatePost } = useSocialMutations();
+  const { setReaction, toggleSaved, addComment, sharePost, toggleCommentLike, deletePost, updatePost, blockUser, reportPost, recordPostView } = useSocialMutations();
 
   const myReaction = post.my_reaction ?? null;
 
@@ -178,18 +178,39 @@ export function PostCard({ post }: { post: Post }) {
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
-          {showMenu && isOwner && (
-            <div className="absolute right-0 top-9 z-20 min-w-[140px] rounded-lg border border-border bg-popover py-1 shadow-lg">
-              <button type="button" onClick={() => { setEditing(true); setEditText(post.text); setShowMenu(false); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-accent">
-                <Pencil className="h-3.5 w-3.5" /> Modifier
-              </button>
-              <button
-                type="button"
-                onClick={() => void deletePost.mutateAsync(post.id).then(() => toast.success("Publication supprimée"))}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-accent"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Supprimer
-              </button>
+          {showMenu && (
+            <div className="absolute right-0 top-9 z-20 min-w-[160px] rounded-lg border border-border bg-popover py-1 shadow-lg">
+              {isOwner ? (
+                <>
+                  <button type="button" onClick={() => { setEditing(true); setEditText(post.text); setShowMenu(false); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-accent">
+                    <Pencil className="h-3.5 w-3.5" /> Modifier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deletePost.mutateAsync(post.id).then(() => toast.success("Publication supprimée"))}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-accent"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void blockUser.mutateAsync(post.author_id).then(() => { toast.success("Utilisateur bloqué"); setShowMenu(false); })}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-accent"
+                  >
+                    <Ban className="h-3.5 w-3.5" /> Bloquer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void reportPost.mutateAsync({ postId: post.id }).then(() => { toast.success("Signalement envoyé à l'admin"); setShowMenu(false); })}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-accent"
+                  >
+                    <Flag className="h-3.5 w-3.5" /> Signaler
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -240,7 +261,12 @@ export function PostCard({ post }: { post: Post }) {
 
               {m.type === "video" ? (
 
-                <video src={m.url} controls className="aspect-[4/3] h-full w-full object-cover" />
+                <video
+                  src={m.url}
+                  controls
+                  className="aspect-[4/3] h-full w-full object-cover"
+                  onPlay={() => void recordPostView.mutate(post.id)}
+                />
 
               ) : m.type === "doc" ? (
 
@@ -299,6 +325,9 @@ export function PostCard({ post }: { post: Post }) {
           </button>
 
           <span>{post.shares} partage{post.shares !== 1 ? "s" : ""}</span>
+          {(post.view_count ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {post.view_count} vue{(post.view_count ?? 0) !== 1 ? "s" : ""}</span>
+          )}
 
         </div>
 

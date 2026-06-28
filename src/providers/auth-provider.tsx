@@ -117,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.user) return;
     setProfileLoading(true);
     try {
+      const { invalidateProfileCache } = await import("@/services/profile.service");
+      invalidateProfileCache();
       setProfile(await fetchAmbassadorProfile(session.user.id, session.user));
     } finally {
       setProfileLoading(false);

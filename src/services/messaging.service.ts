@@ -33,7 +33,16 @@ function mapMessage(row: Record<string, unknown>): Message {
     metadata: (row.metadata as Record<string, unknown>) ?? {},
     story_id: row.story_id ? String(row.story_id) : null,
     reply_to_id: row.reply_to_id ? String(row.reply_to_id) : null,
+    edited_at: row.edited_at ? String(row.edited_at) : null,
+    deleted_for_all: Boolean(row.deleted_for_all),
+    deleted_for: (row.deleted_for as string[]) ?? [],
   };
+}
+
+function visibleToUser(row: Record<string, unknown>, userId: string): boolean {
+  if (row.deleted_for_all) return true;
+  const deletedFor = (row.deleted_for as string[]) ?? [];
+  return !deletedFor.includes(userId);
 }
 
 async function countUnreadForConversations(
@@ -106,7 +115,7 @@ export async function fetchConversations(userId: string): Promise<Conversation[]
   return result.sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
 }
 
-export async function fetchMessages(conversationId: string): Promise<Message[]> {
+export async function fetchMessages(conversationId: string, userId?: string): Promise<Message[]> {
   const db = messagingDb();
   const { data, error } = await db
     .from("academy_messages")
@@ -115,7 +124,44 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
     .order("created_at", { ascending: true });
 
   if (error) return [];
-  return (data ?? []).map((row: Record<string, unknown>) => mapMessage(row));
+  return (data ?? [])
+    .filter((row: Record<string, unknown>) => {
+      if (row.deleted_for_all) return true;
+      if (!userId) return true;
+      const deletedFor = (row.deleted_for as string[]) ?? [];
+      return !deletedFor.includes(userId);
+    })
+    .map((row: Record<string, unknown>) => mapMessage(row));
+}
+
+export async function editMessage(userId: string, messageId: string, body: string): Promise<void> {
+  const trimmed = body.trim();
+  if (!trimmed) throw new Error("Message vide.");
+  const { error } = await messagingDb()
+    .from("academy_messages")
+    .update({ body: trimmed, edited_at: new Date().toISOString() })
+    .eq("id", messageId)
+    .eq("author_id", userId);
+  if (error) throw error;
+}
+
+export async function deleteMessageForAll(userId: string, messageId: string): Promise<void> {
+  const { error } = await messagingDb()
+    .from("academy_messages")
+    .update({ deleted_for_all: true, body: "Ce message a été supprimé" })
+    .eq("id", messageId)
+    .eq("author_id", userId);
+  if (error) throw error;
+}
+
+export async function deleteMessageForMe(userId: string, messageId: string): Promise<void> {
+  const db = messagingDb();
+  const { data, error: fetchError } = await db.from("academy_messages").select("deleted_for").eq("id", messageId).single();
+  if (fetchError) throw fetchError;
+  const deletedFor = [...((data as { deleted_for?: string[] }).deleted_for ?? [])];
+  if (!deletedFor.includes(userId)) deletedFor.push(userId);
+  const { error } = await db.from("academy_messages").update({ deleted_for: deletedFor }).eq("id", messageId);
+  if (error) throw error;
 }
 
 export async function getOrCreateDirectConversation(
@@ -241,6 +287,18 @@ export function subscribeToConversationMessages(
       "postgres_changes",
       {
         event: "INSERT",
+        schema: "public",
+        table: "academy_messages",
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        onMessage(mapMessage(payload.new as Record<string, unknown>));
+      },
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
         schema: "public",
         table: "academy_messages",
         filter: `conversation_id=eq.${conversationId}`,

@@ -22,6 +22,9 @@ export interface Message {
   metadata?: Record<string, unknown>;
   story_id?: string | null;
   reply_to_id?: string | null;
+  edited_at?: string | null;
+  deleted_for_all?: boolean;
+  deleted_for?: string[];
 }
 
 export type OpportunityApplicationStatus =

@@ -64,6 +64,12 @@ import {
 
   replyToStory,
 
+  blockUser,
+
+  reportPost,
+
+  recordPostView,
+
 } from "@/services/social.service";
 
 import { fetchOpportunitiesWithApplications } from "@/services/opportunities.service";
@@ -758,6 +764,19 @@ export function useSocialMutations() {
 
   });
 
+  const blockUserMutation = useMutation({
+    mutationFn: (blockedId: string) => blockUser(userId!, blockedId),
+  });
+
+  const reportPostMutation = useMutation({
+    mutationFn: ({ postId, reason }: { postId: string; reason?: string }) => reportPost(userId!, postId, reason),
+  });
+
+  const recordPostViewMutation = useMutation({
+    mutationFn: (postId: string) => recordPostView(userId!, postId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+  });
+
 
 
   return useMemo(
@@ -792,6 +811,12 @@ export function useSocialMutations() {
 
       replyToStory: replyToStoryMutation,
 
+      blockUser: blockUserMutation,
+
+      reportPost: reportPostMutation,
+
+      recordPostView: recordPostViewMutation,
+
     }),
 
     [
@@ -823,6 +848,12 @@ export function useSocialMutations() {
       toggleStoryLikeMutation,
 
       replyToStoryMutation,
+
+      blockUserMutation,
+
+      reportPostMutation,
+
+      recordPostViewMutation,
 
     ],
 

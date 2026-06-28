@@ -163,6 +163,12 @@ function StoryViewer({
             )}
           </div>
         </div>
+        {meId === story.author_id && (
+          <div className="absolute inset-x-3 bottom-3 flex justify-center gap-4 rounded-lg bg-black/50 px-3 py-2 text-xs text-white backdrop-blur">
+            <span>👁 {story.view_count ?? 0} vues</span>
+            <span>❤️ {story.like_count ?? 0}</span>
+          </div>
+        )}
         {story.caption && (
           <p className="absolute inset-x-3 bottom-20 rounded-lg bg-black/60 px-3 py-2 text-center text-sm text-white backdrop-blur sm:bottom-24">{story.caption}</p>
         )}

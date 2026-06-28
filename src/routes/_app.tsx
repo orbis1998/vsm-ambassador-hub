@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const navigate = useNavigate();
   const browser = useIsBrowser();
-  const { session, loading } = useAuth();
+  const { session, loading, refreshProfile } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const configured = isSupabaseConfigured();
 
@@ -40,6 +40,10 @@ function AppLayout() {
       navigate({ to: "/staff" });
     }
   }, [configured, loading, session, checkingAdmin, isAdmin, navigate]);
+
+  useEffect(() => {
+    if (session?.user && !isAdmin) void refreshProfile();
+  }, [session?.user?.id, isAdmin, refreshProfile]);
 
   if (!configured || loading || !session || checkingAdmin || isAdmin) {
     return (

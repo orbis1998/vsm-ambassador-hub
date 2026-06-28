@@ -74,9 +74,9 @@ function ProfilePage() {
           <button
             type="button"
             onClick={() => coverRef.current?.click()}
-            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100"
+            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
           >
-            <Camera className="h-3 w-3" /> Couverture
+            <Camera className="h-3 w-3" /> Appuyer pour changer
           </button>
           <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setCropFile(f); setCropKind("cover"); } e.target.value = ""; }} />
         </div>
@@ -86,9 +86,12 @@ function ProfilePage() {
             <button
               type="button"
               onClick={() => avatarRef.current?.click()}
-              className="absolute inset-0 grid place-items-center rounded-2xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute inset-0 grid place-items-center rounded-2xl bg-black/40 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
             >
-              <Camera className="h-6 w-6 text-white" />
+              <span className="flex flex-col items-center gap-1 text-white">
+                <Camera className="h-6 w-6" />
+                <span className="text-[9px] font-bold uppercase tracking-wider md:hidden">Changer</span>
+              </span>
             </button>
             <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setCropFile(f); setCropKind("avatar"); } e.target.value = ""; }} />
           </div>

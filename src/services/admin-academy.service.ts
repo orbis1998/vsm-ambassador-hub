@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase/client";
+import { notifyAllAmbassadors } from "@/services/notifications.service";
 
 function db() {
   return getSupabase();
@@ -88,12 +89,30 @@ export async function adminUpsertCourse(input: Partial<AdminCourseRow> & { title
   if (input.id) {
     const { data, error } = await db().from("academy_courses").update(payload).eq("id", input.id).select("*").single();
     if (error) throw error;
-    return data as AdminCourseRow;
+    const row = data as AdminCourseRow;
+    if (row.is_published) {
+      await notifyAllAmbassadors({
+        type: "course",
+        title: "Nouvelle formation",
+        body: row.title,
+        link: `/academy/cours/${row.slug}`,
+      }).catch(() => undefined);
+    }
+    return row;
   }
 
   const { data, error } = await db().from("academy_courses").insert(payload).select("*").single();
   if (error) throw error;
-  return data as AdminCourseRow;
+  const row = data as AdminCourseRow;
+  if (row.is_published) {
+    await notifyAllAmbassadors({
+      type: "course",
+      title: "Nouvelle formation",
+      body: row.title,
+      link: `/academy/cours/${row.slug}`,
+    }).catch(() => undefined);
+  }
+  return row;
 }
 
 export async function adminDeleteCourse(id: string): Promise<void> {
@@ -155,12 +174,20 @@ export async function adminUpsertChallenge(input: Partial<AdminChallengeRow> & {
   if (input.id) {
     const { data, error } = await db().from("academy_challenges").update(payload).eq("id", input.id).select("*").single();
     if (error) throw error;
-    return data as AdminChallengeRow;
+    const row = data as AdminChallengeRow;
+    if (row.is_active) {
+      await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/academy/defis" }).catch(() => undefined);
+    }
+    return row;
   }
 
   const { data, error } = await db().from("academy_challenges").insert(payload).select("*").single();
   if (error) throw error;
-  return data as AdminChallengeRow;
+  const row = data as AdminChallengeRow;
+  if (row.is_active) {
+    await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/academy/defis" }).catch(() => undefined);
+  }
+  return row;
 }
 
 export async function adminFetchResources(): Promise<AdminResourceRow[]> {

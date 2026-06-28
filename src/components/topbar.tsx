@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, MessageSquare, Search, Menu, ChevronDown } from "lucide-react";
+import { Bell, MessageSquare, Search, Menu, ChevronDown, X } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotifications, useUnreadMessageCount, useUnreadNotificationCount } from "@/hooks/use-notifications";
 import { formatRelativeTime } from "@/services/ambassador.service";
+import { markAllNotificationsRead, markNotificationRead } from "@/services/notifications.service";
 import { profileAvatarUrl } from "@/lib/program-tier";
 
 interface Props {
@@ -13,10 +14,18 @@ interface Props {
 export function Topbar({ onMenuClick }: Props) {
   const [open, setOpen] = useState<"notif" | "user" | null>(null);
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const { data: notifications = [] } = useNotifications(6);
-  const { data: unreadNotifs = 0 } = useUnreadNotificationCount();
+  const { profile, session } = useAuth();
+  const userId = profile?.userId ?? session?.user?.id;
+  const { data: notifications = [], refetch } = useNotifications(8);
+  const { data: unreadNotifs = 0, refetch: refetchCount } = useUnreadNotificationCount();
   const { data: unreadMsgs = 0 } = useUnreadMessageCount();
+
+  useEffect(() => {
+    if (open !== "notif") return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const displayName = profile?.name ?? "Ambassadeur";
   const displayLevel = profile?.level ?? "—";
@@ -24,6 +33,73 @@ export function Topbar({ onMenuClick }: Props) {
   const displayAvatar = profile
     ? profile.avatar || profileAvatarUrl(null, profile.email ?? profile.name)
     : profileAvatarUrl(null, "vsm");
+
+  const handleOpenNotifs = () => {
+    setOpen(open === "notif" ? null : "notif");
+    void refetch();
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!userId) return;
+    await markAllNotificationsRead(userId);
+    void refetch();
+    void refetchCount();
+  };
+
+  const notifPanel = (
+    <>
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <p className="text-sm font-semibold">Notifications</p>
+        <div className="flex items-center gap-2">
+          {unreadNotifs > 0 && (
+            <button type="button" onClick={() => void handleMarkAllRead()} className="text-[10px] font-semibold uppercase text-vsm-red">
+              Tout lire
+            </button>
+          )}
+          <button type="button" className="md:hidden" onClick={() => setOpen(null)} aria-label="Fermer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <ul className="max-h-[min(70dvh,24rem)] overflow-y-auto md:max-h-96">
+        {notifications.length === 0 ? (
+          <li className="px-4 py-8 text-center text-xs text-muted-foreground">
+            Aucune notification pour le moment.
+          </li>
+        ) : (
+          notifications.map((n) => (
+            <li key={n.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  void markNotificationRead(n.id).then(() => { void refetch(); void refetchCount(); });
+                  if (n.link) navigate({ to: n.link });
+                  setOpen(null);
+                }}
+                className="flex w-full items-start gap-3 border-b border-border/60 px-4 py-3 text-left last:border-0 hover:bg-accent/50"
+              >
+                {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-vsm-red" />}
+                <div className={`min-w-0 flex-1 ${n.read ? "pl-5" : ""}`}>
+                  <p className="text-sm font-medium text-foreground">{n.title}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {formatRelativeTime(n.created_at)}
+                  </p>
+                </div>
+              </button>
+            </li>
+          ))
+        )}
+      </ul>
+      <Link
+        to="/notifications"
+        onClick={() => setOpen(null)}
+        className="block border-t border-border px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-vsm-red hover:bg-accent"
+      >
+        Voir toutes les notifications
+      </Link>
+    </>
+  );
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl md:px-6">
@@ -65,61 +141,24 @@ export function Topbar({ onMenuClick }: Props) {
 
         <div className="relative">
           <button
-            onClick={() => setOpen(open === "notif" ? null : "notif")}
+            onClick={handleOpenNotifs}
             className="relative grid h-10 w-10 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Notifications"
           >
             <Bell className="h-[18px] w-[18px]" />
             {unreadNotifs > 0 && (
               <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-vsm-red px-1 text-[10px] font-bold text-white shadow-[0_0_12px_var(--vsm-red)]">
-                {unreadNotifs}
+                {unreadNotifs > 9 ? "9+" : unreadNotifs}
               </span>
             )}
           </button>
           {open === "notif" && (
-            <div className="animate-fade-up absolute right-0 top-12 w-80 overflow-hidden rounded-xl border border-border bg-popover shadow-elegant">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold">Notifications</p>
-                {unreadNotifs > 0 && (
-                  <span className="rounded-full bg-vsm-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-vsm-red">
-                    {unreadNotifs} nouvelles
-                  </span>
-                )}
+            <>
+              <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setOpen(null)} />
+              <div className="animate-fade-up fixed inset-x-3 top-[4.25rem] z-50 overflow-hidden rounded-xl border border-border bg-popover shadow-elegant md:absolute md:inset-x-auto md:right-0 md:top-12 md:w-80">
+                {notifPanel}
               </div>
-              <ul className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <li className="px-4 py-6 text-center text-xs text-muted-foreground">
-                    Aucune notification pour le moment.
-                  </li>
-                ) : (
-                  notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className="border-b border-border/60 px-4 py-3 last:border-0 hover:bg-accent/50"
-                    >
-                      <div className="flex items-start gap-3">
-                        {!n.read && (
-                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-vsm-red" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground">{n.title}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.body}</p>
-                          <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {formatRelativeTime(n.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-              <Link
-                to="/notifications"
-                className="block border-t border-border px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-vsm-red hover:bg-accent"
-              >
-                Voir toutes les notifications
-              </Link>
-            </div>
+            </>
           )}
         </div>
 
@@ -143,17 +182,17 @@ export function Topbar({ onMenuClick }: Props) {
               </div>
               <ul className="py-1 text-sm">
                 <li>
-                  <Link to="/profil" className="block px-4 py-2 hover:bg-accent">
+                  <Link to="/profil" className="block px-4 py-2 hover:bg-accent" onClick={() => setOpen(null)}>
                     Mon profil
                   </Link>
                 </li>
                 <li>
-                  <Link to="/parametres" className="block px-4 py-2 hover:bg-accent">
+                  <Link to="/parametres" className="block px-4 py-2 hover:bg-accent" onClick={() => setOpen(null)}>
                     Paramètres
                   </Link>
                 </li>
                 <li>
-                  <Link to="/certificats" className="block px-4 py-2 hover:bg-accent">
+                  <Link to="/certificats" className="block px-4 py-2 hover:bg-accent" onClick={() => setOpen(null)}>
                     Mes certificats
                   </Link>
                 </li>
