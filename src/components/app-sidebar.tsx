@@ -13,11 +13,10 @@ import {
   Search,
   User,
   Settings,
-  Shield,
   LogOut,
 } from "lucide-react";
 import { VsmLogo } from "./vsm-logo";
-import { signOut } from "@/lib/auth";
+import { useAuth } from "@/providers/auth-provider";
 import { useNavigate } from "@tanstack/react-router";
 
 const items = [
@@ -34,7 +33,6 @@ const items = [
   { to: "/recherche", label: "Recherche", icon: Search },
   { to: "/profil", label: "Profil", icon: User },
   { to: "/parametres", label: "Paramètres", icon: Settings },
-  { to: "/admin", label: "Admin", icon: Shield },
 ] as const;
 
 
@@ -45,6 +43,7 @@ interface Props {
 export function AppSidebar({ onNavigate }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-sidebar">
@@ -85,8 +84,8 @@ export function AppSidebar({ onNavigate }: Props) {
 
       <div className="border-t border-sidebar-border p-3">
         <button
-          onClick={() => {
-            signOut();
+          onClick={async () => {
+            await signOut();
             navigate({ to: "/login" });
           }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-vsm-red"

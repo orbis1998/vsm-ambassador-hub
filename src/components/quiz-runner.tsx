@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, RotateCcw, Trophy } from "lucide-react";
-import type { Quiz } from "@/lib/academy-data";
+import type { Quiz } from "@/types/academy";
 
 interface Props {
   quiz: Quiz;

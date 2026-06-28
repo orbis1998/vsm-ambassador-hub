@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Crown, Trophy } from "lucide-react";
-import { ambassadors } from "@/lib/mock-data";
+import { Crown, Trophy, Loader2 } from "lucide-react";
+import { useLeaderboard } from "@/hooks/use-ambassadors";
 
 export const Route = createFileRoute("/_app/classement")({
   component: LeaderboardPage,
@@ -12,8 +12,12 @@ type Scope = "national" | "city" | "promotion" | "week" | "month" | "xp" | "poin
 function LeaderboardPage() {
   const [scope, setScope] = useState<Scope>("xp");
   const [city, setCity] = useState<string>("Toutes");
+  const { data: ambassadors = [], isLoading } = useLeaderboard(100);
 
-  const cities = useMemo(() => ["Toutes", ...Array.from(new Set(ambassadors.map((a) => a.country)))], []);
+  const cities = useMemo(
+    () => ["Toutes", ...Array.from(new Set(ambassadors.map((a) => a.country)))],
+    [ambassadors],
+  );
 
   const ranked = useMemo(() => {
     let list = [...ambassadors];
@@ -22,7 +26,15 @@ function LeaderboardPage() {
     else if (scope === "certifs") list.sort((a, b) => (b.id.length - a.id.length));
     else list.sort((a, b) => b.xp - a.xp);
     return list.slice(0, 100).map((a, i) => ({ ...a, rank: i + 1 }));
-  }, [scope, city]);
+  }, [scope, city, ambassadors]);
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

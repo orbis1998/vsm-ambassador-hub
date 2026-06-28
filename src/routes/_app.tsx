@@ -1,8 +1,13 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
+import { MobileNav } from "@/components/mobile-nav";
 import { Topbar } from "@/components/topbar";
-import { isAuthenticated } from "@/lib/auth";
+import { useAuth } from "@/providers/auth-provider";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { checkIsAdmin } from "@/services/staff-auth.service";
+import { useIsBrowser } from "@/hooks/use-is-browser";
 import { X } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
@@ -11,18 +16,32 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const browser = useIsBrowser();
+  const { session, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const configured = isSupabaseConfigured();
+
+  const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
+    queryKey: ["app-is-admin", session?.user.id],
+    queryFn: () => checkIsAdmin(session!.user.id),
+    enabled: browser && !!session?.user.id,
+  });
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!configured) {
       navigate({ to: "/login" });
-    } else {
-      setReady(true);
+      return;
     }
-  }, [navigate]);
+    if (!loading && !session) {
+      navigate({ to: "/login" });
+      return;
+    }
+    if (!loading && session && !checkingAdmin && isAdmin) {
+      navigate({ to: "/staff" });
+    }
+  }, [configured, loading, session, checkingAdmin, isAdmin, navigate]);
 
-  if (!ready) {
+  if (!configured || loading || !session || checkingAdmin || isAdmin) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-vsm-red" />
@@ -59,9 +78,10 @@ function AppLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 py-6 md:px-6 md:py-8">
+        <main className="flex-1 px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8">
           <Outlet />
         </main>
+        <MobileNav />
       </div>
     </div>
   );

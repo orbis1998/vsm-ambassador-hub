@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Trophy, Clock, Users, Flame, Calendar, Star } from "lucide-react";
-import { vsmChallenges } from "@/lib/social-data";
+import { Trophy, Clock, Users, Flame, Calendar, Star, Loader2 } from "lucide-react";
+import { useChallenges, useJoinChallenge } from "@/hooks/use-gamification";
 
 export const Route = createFileRoute("/_app/defis")({
   component: ChallengesPage,
@@ -12,8 +12,19 @@ type T = "all" | "weekly" | "monthly" | "special";
 function ChallengesPage() {
   const [tab, setTab] = useState<T>("all");
   const [active, setActive] = useState<string | null>(null);
-  const list = tab === "all" ? vsmChallenges : vsmChallenges.filter((c) => c.type === tab);
-  const current = active ? vsmChallenges.find((c) => c.id === active) : null;
+  const { data: challenges = [], isLoading } = useChallenges();
+  const joinChallenge = useJoinChallenge();
+
+  const list = tab === "all" ? challenges : challenges.filter((c) => c.type === tab);
+  const current = active ? challenges.find((c) => c.id === active) : null;
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -48,29 +59,35 @@ function ChallengesPage() {
         })}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {list.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setActive(c.id)}
-            className="group text-left rounded-2xl border border-border bg-surface p-5 transition-all hover:border-vsm-red/40 hover:shadow-glow-red"
-          >
-            <div className="flex items-center justify-between">
-              <span className="rounded-full bg-vsm-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-vsm-red">{c.type}</span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" /> {c.deadline}</span>
-            </div>
-            <h3 className="mt-3 font-display text-lg font-bold uppercase tracking-wide">{c.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{c.goal}</p>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-background">
-              <div className="h-full rounded-full bg-vsm-red" style={{ width: `${c.progress}%` }} />
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {c.participants}</span>
-              <span className="font-display font-bold text-vsm-red">+{c.reward_xp} XP</span>
-            </div>
-          </button>
-        ))}
-      </div>
+      {list.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center text-sm text-muted-foreground">
+          Aucun défi actif pour le moment. Revenez bientôt !
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {list.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActive(c.id)}
+              className="group text-left rounded-2xl border border-border bg-surface p-5 transition-all hover:border-vsm-red/40 hover:shadow-glow-red"
+            >
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-vsm-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-vsm-red">{c.type}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" /> {c.deadline}</span>
+              </div>
+              <h3 className="mt-3 font-display text-lg font-bold uppercase tracking-wide">{c.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{c.goal}</p>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-background">
+                <div className="h-full rounded-full bg-vsm-red" style={{ width: `${c.progress}%` }} />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {c.participants}</span>
+                <span className="font-display font-bold text-vsm-red">+{c.reward_xp} XP</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {current && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur" onClick={() => setActive(null)}>
@@ -87,17 +104,27 @@ function ChallengesPage() {
             </div>
             <div className="p-6">
               <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Top participants</h3>
-              <ol className="space-y-2">
-                {current.ranking.slice(0, 5).map((r) => (
-                  <li key={r.rank} className="flex items-center gap-3 rounded-lg bg-background p-2.5">
-                    <span className="grid h-7 w-7 place-items-center rounded-md bg-vsm-red/15 text-xs font-bold text-vsm-red">{r.rank}</span>
-                    <img src={r.avatar} alt="" className="h-8 w-8 rounded-lg" />
-                    <p className="flex-1 text-sm font-semibold">{r.name}</p>
-                    <span className="font-display font-bold text-vsm-red">{r.score}</span>
-                  </li>
-                ))}
-              </ol>
-              <button className="mt-5 w-full rounded-lg bg-vsm-red py-3 text-sm font-bold uppercase tracking-wider text-white shadow-glow-red">Participer au défi</button>
+              {current.ranking.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Soyez le premier à participer !</p>
+              ) : (
+                <ol className="space-y-2">
+                  {current.ranking.slice(0, 5).map((r) => (
+                    <li key={r.rank} className="flex items-center gap-3 rounded-lg bg-background p-2.5">
+                      <span className="grid h-7 w-7 place-items-center rounded-md bg-vsm-red/15 text-xs font-bold text-vsm-red">{r.rank}</span>
+                      <img src={r.avatar} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                      <p className="flex-1 text-sm font-semibold">{r.name}</p>
+                      <span className="font-display font-bold text-vsm-red">{r.score}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <button
+                disabled={current.joined || joinChallenge.isPending}
+                onClick={() => joinChallenge.mutate(current.id)}
+                className="mt-5 w-full rounded-lg bg-vsm-red py-3 text-sm font-bold uppercase tracking-wider text-white shadow-glow-red disabled:opacity-50"
+              >
+                {current.joined ? "Déjà inscrit" : joinChallenge.isPending ? "Inscription…" : "Participer au défi"}
+              </button>
             </div>
           </div>
         </div>

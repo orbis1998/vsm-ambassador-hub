@@ -1,23 +1,30 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Lock, Globe2, Users } from "lucide-react";
-import { groups, posts } from "@/lib/social-data";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, Lock, Globe2, Users, Loader2 } from "lucide-react";
 import { PostCard } from "@/components/post-card";
+import { useGroup, useGroupPosts, useSocialMutations } from "@/hooks/use-social";
 
 export const Route = createFileRoute("/_app/communaute/groupes/$id")({
-  loader: ({ params }) => {
-    const g = groups.find((x) => x.id === params.id);
-    if (!g) throw notFound();
-    return { group: g };
-  },
-  notFoundComponent: () => <p className="p-8 text-center text-muted-foreground">Groupe introuvable.</p>,
-  errorComponent: () => <p className="p-8 text-center text-muted-foreground">Erreur de chargement.</p>,
   component: GroupPage,
 });
 
 function GroupPage() {
-  const { group } = Route.useLoaderData();
-  const groupPosts = posts.filter((p) => p.group_id === group.id).slice(0, 10);
-  const fallback = groupPosts.length > 0 ? groupPosts : posts.slice(0, 6);
+  const { id } = Route.useParams();
+  const { data: group, isLoading: groupLoading } = useGroup(id);
+  const { data: groupPosts = [], isLoading: postsLoading } = useGroupPosts(id);
+  const { toggleGroup } = useSocialMutations();
+
+  if (groupLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
+
+  if (!group) {
+    return <p className="p-8 text-center text-muted-foreground">Groupe introuvable.</p>;
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link to="/communaute/groupes" className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-vsm-red">
@@ -33,7 +40,13 @@ function GroupPage() {
               <h1 className="font-display text-3xl font-bold uppercase tracking-wide">{group.name}</h1>
               <p className="mt-1 text-xs text-white/80">{group.description}</p>
             </div>
-            <button className="rounded-lg bg-vsm-red px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-glow-red">{group.joined ? "Membre" : "Rejoindre"}</button>
+            <button
+              disabled={toggleGroup.isPending}
+              onClick={() => toggleGroup.mutate({ groupId: group.id, joined: group.joined })}
+              className="rounded-lg bg-vsm-red px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-glow-red disabled:opacity-50"
+            >
+              {group.joined ? "Quitter" : "Rejoindre"}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-4 border-t border-border px-5 py-3 text-xs text-muted-foreground">
@@ -44,7 +57,17 @@ function GroupPage() {
       </div>
 
       <div className="space-y-5">
-        {fallback.map((p) => <PostCard key={p.id} post={p} />)}
+        {postsLoading ? (
+          <div className="grid place-items-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-vsm-red" />
+          </div>
+        ) : groupPosts.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-sm text-muted-foreground">
+            Aucune publication dans ce groupe.
+          </p>
+        ) : (
+          groupPosts.map((p) => <PostCard key={p.id} post={p} />)
+        )}
       </div>
     </div>
   );

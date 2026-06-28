@@ -13,10 +13,12 @@ import {
   Flame,
   Star,
   Trophy,
+  Loader2,
 } from "lucide-react";
-import { parcours, allCourses, type Difficulty } from "@/lib/academy-data";
+import type { Difficulty } from "@/types/academy";
 import { useAcademyStore } from "@/lib/academy-store";
-import { stats } from "@/lib/mock-data";
+import { useAuth } from "@/providers/auth-provider";
+import { useCourseSummaries, useParcoursList } from "@/hooks/use-academy";
 
 export const Route = createFileRoute("/_app/academie/")({
   component: AcademieHub,
@@ -25,9 +27,14 @@ export const Route = createFileRoute("/_app/academie/")({
 const DIFFS: ("Tous" | Difficulty)[] = ["Tous", "Débutant", "Intermédiaire", "Avancé", "Expert"];
 
 function AcademieHub() {
-  const { state } = useAcademyStore();
+  const { profile } = useAuth();
+  const { state, loading: progressLoading } = useAcademyStore();
+  const { data: parcours = [], isLoading: parcoursLoading } = useParcoursList();
+  const { data: allCourses = [], isLoading: coursesLoading } = useCourseSummaries();
   const [q, setQ] = useState("");
   const [diff, setDiff] = useState<(typeof DIFFS)[number]>("Tous");
+
+  const loading = parcoursLoading || coursesLoading || progressLoading;
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -40,10 +47,10 @@ function AcademieHub() {
         p.courses.some((c) => c.title.toLowerCase().includes(ql))
       );
     });
-  }, [q, diff]);
+  }, [parcours, q, diff]);
 
   const completedCourses = Object.values(state.progress).filter((p) => p >= 100).length;
-  const totalCourses = allCourses.length;
+  const totalCourses = allCourses.length || 1;
   const overall = Math.round((completedCourses / totalCourses) * 100);
 
   const continueCourses = allCourses
@@ -62,9 +69,16 @@ function AcademieHub() {
 
   const favoritesCount = state.favorites.length;
 
+  if (loading && parcours.length === 0) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
@@ -72,7 +86,9 @@ function AcademieHub() {
           </p>
           <h1 className="font-display text-3xl font-bold uppercase tracking-wide md:text-4xl">Académie</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Apprends, applique, monte en grade. 10 parcours · {allCourses.length} cours · certifications officielles.
+            {parcours.length > 0
+              ? `${parcours.length} parcours · ${allCourses.length} cours · certifications officielles.`
+              : "Exécutez la migration 002 sur Supabase pour charger les formations."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -92,7 +108,6 @@ function AcademieHub() {
         </div>
       </header>
 
-      {/* Progress strip */}
       <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-vsm-red/15 blur-3xl" />
         <div className="relative grid gap-6 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
@@ -111,13 +126,12 @@ function AcademieHub() {
               />
             </div>
           </div>
-          <StatBlock icon={Trophy} label="Niveau" value={stats.level} />
-          <StatBlock icon={Flame} label="XP" value={`${stats.xp.toLocaleString()} XP`} />
-          <StatBlock icon={GraduationCap} label="Certificats" value={`${stats.certificates}`} />
+          <StatBlock icon={Trophy} label="Niveau" value={profile?.level ?? "—"} />
+          <StatBlock icon={Flame} label="XP" value={`${(profile?.xp ?? 0).toLocaleString()} XP`} />
+          <StatBlock icon={GraduationCap} label="Progression" value={`${profile?.academyProgress ?? 0}%`} />
         </div>
       </section>
 
-      {/* Search + filters */}
       <section className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -146,7 +160,6 @@ function AcademieHub() {
         </div>
       </section>
 
-      {/* Continue learning */}
       {continueCourses.length > 0 && (
         <section>
           <SectionHeader icon={PlayCircle} title="Continuer mon apprentissage" subtitle="Reprends où tu t'es arrêté" />
@@ -158,81 +171,87 @@ function AcademieHub() {
         </section>
       )}
 
-      {/* Parcours grid */}
       <section>
         <SectionHeader icon={GraduationCap} title="Parcours de formation" subtitle={`${filtered.length} parcours disponibles`} />
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((p) => {
-            const courseIds = p.courses.map((c) => c.id);
-            const done = courseIds.filter((id) => (state.progress[id] ?? 0) >= 100).length;
-            const pct = Math.round((done / courseIds.length) * 100);
-            return (
-              <Link
-                key={p.id}
-                to="/academie/parcours/$id"
-                params={{ id: p.id }}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:border-vsm-red/50 hover:shadow-glow-red"
-              >
-                <div className="relative aspect-[16/9] overflow-hidden">
-                  <img
-                    src={p.cover}
-                    alt={p.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-                  <span className="absolute left-3 top-3 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur">
-                    Parcours {p.number.toString().padStart(2, "0")}
-                  </span>
-                  <span className="absolute right-3 top-3 rounded-md bg-vsm-red/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
-                    {p.difficulty}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col gap-3 p-5">
-                  <div>
-                    <h3 className="font-display text-xl font-bold uppercase tracking-wide">{p.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{p.tagline}</p>
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+            Aucun parcours publié pour le moment.
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((p) => {
+              const courseIds = p.courses.map((c) => c.id);
+              const done = courseIds.filter((id) => (state.progress[id] ?? 0) >= 100).length;
+              const pct = courseIds.length ? Math.round((done / courseIds.length) * 100) : 0;
+              return (
+                <Link
+                  key={p.id}
+                  to="/academie/parcours/$id"
+                  params={{ id: p.id }}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:border-vsm-red/50 hover:shadow-glow-red"
+                >
+                  <div className="relative aspect-[16/9] overflow-hidden">
+                    <img
+                      src={p.cover}
+                      alt={p.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+                    <span className="absolute left-3 top-3 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur">
+                      Parcours {p.number.toString().padStart(2, "0")}
+                    </span>
+                    <span className="absolute right-3 top-3 rounded-md bg-vsm-red/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      {p.difficulty}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{p.hours}h</span>
-                    <span>·</span>
-                    <span>{p.courses.length} modules</span>
-                    <span>·</span>
-                    <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-vsm-red text-vsm-red" />4.{6 + (p.number % 4)}</span>
-                  </div>
-                  <div className="mt-auto">
-                    <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <span>Progression</span>
-                      <span className="font-semibold text-foreground">{pct}%</span>
+                  <div className="flex flex-1 flex-col gap-3 p-5">
+                    <div>
+                      <h3 className="font-display text-xl font-bold uppercase tracking-wide">{p.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{p.tagline}</p>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-background">
-                      <div className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow" style={{ width: `${pct}%` }} />
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {p.hours}h
+                      </span>
+                      <span>·</span>
+                      <span>{p.courses.length} modules</span>
+                    </div>
+                    <div className="mt-auto">
+                      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+                        <span>Progression</span>
+                        <span className="font-semibold text-foreground">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-background">
+                        <div className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Recommended */}
-      <section>
-        <SectionHeader icon={Sparkles} title="Recommandé pour toi" subtitle="Sélection alignée avec ton niveau et ton activité" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recommended.map((c) => (
-            <CourseCard
-              key={c.id}
-              id={c.id}
-              title={c.title}
-              cover={c.cover}
-              duration={c.duration}
-              progress={state.progress[c.id] ?? 0}
-            />
-          ))}
-        </div>
-      </section>
+      {recommended.length > 0 && (
+        <section>
+          <SectionHeader icon={Sparkles} title="Recommandé pour toi" subtitle="Sélection alignée avec ton niveau" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recommended.map((c) => (
+              <CourseCard
+                key={c.id}
+                id={c.id}
+                title={c.title}
+                cover={c.cover}
+                duration={c.duration}
+                progress={state.progress[c.id] ?? 0}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* History */}
       {recentHistory.length > 0 && (
         <section>
           <SectionHeader icon={History} title="Derniers cours consultés" subtitle="Ta dernière activité" />
@@ -247,7 +266,9 @@ function AcademieHub() {
                   <img src={c.cover} alt="" className="h-12 w-20 rounded-md object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{c.title}</p>
-                    <p className="text-xs text-muted-foreground">{c.duration} · {c.difficulty}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.duration} · {c.difficulty}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </Link>

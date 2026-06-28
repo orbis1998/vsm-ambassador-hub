@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -16,56 +16,67 @@ import {
   Clock,
   Sparkles,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
-import { academyApi, findCourse } from "@/lib/academy-data";
 import { useAcademyStore } from "@/lib/academy-store";
+import { useCourseWithParcours } from "@/hooks/use-academy";
 import { VideoPlayer } from "@/components/video-player";
 import { QuizRunner } from "@/components/quiz-runner";
 
 export const Route = createFileRoute("/_app/academie/cours/$id")({
-  loader: async ({ params }) => {
-    const c = await academyApi.getCourseById(params.id);
-    if (!c) throw notFound();
-    return c;
-  },
   component: CoursePage,
-  notFoundComponent: () => (
-    <div className="grid place-items-center p-12 text-center">
-      <p className="text-muted-foreground">Cours introuvable.</p>
-      <Link to="/academie" className="mt-3 text-sm font-semibold text-vsm-red">Retour à l'Académie</Link>
-    </div>
-  ),
 });
 
 type Tab = "overview" | "lessons" | "downloads" | "quiz" | "mission" | "notes" | "comments";
 
 function CoursePage() {
-  const course = Route.useLoaderData() as NonNullable<Awaited<ReturnType<typeof academyApi.getCourseById>>>;
-  const ctx = findCourse(course.id)!;
-  const { parcours } = ctx;
-  const idx = parcours.courses.findIndex((c) => c.id === course.id);
-  const next = parcours.courses[idx + 1];
-
+  const { id } = Route.useParams();
+  const { data: ctx, isLoading, isError } = useCourseWithParcours(id);
   const { state, toggleFavorite, logHistory, setProgress, setNote, toggleLesson, saveQuizScore } = useAcademyStore();
 
   useEffect(() => {
-    logHistory(course.id);
-  }, [course.id, logHistory]);
+    if (ctx?.course) logHistory(ctx.course.id);
+  }, [ctx?.course?.id, logHistory, ctx?.course]);
 
   const [tab, setTab] = useState<Tab>("overview");
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
+
+  if (isError || !ctx) {
+    return (
+      <div className="grid place-items-center p-12 text-center">
+        <p className="text-muted-foreground">Cours introuvable.</p>
+        <Link to="/academie" className="mt-3 text-sm font-semibold text-vsm-red">
+          Retour à l&apos;Académie
+        </Link>
+      </div>
+    );
+  }
+
+  const { course, parcours } = ctx;
+  const idx = parcours.courses.findIndex((c) => c.id === course.id);
+  const next = parcours.courses[idx + 1];
   const isFav = state.favorites.includes(course.id);
   const completedLessons = state.completedLessons[course.id] ?? [];
-  const lessonPct = Math.round((completedLessons.length / course.lessons.length) * 100);
+  const lessonPct = course.lessons.length
+    ? Math.round((completedLessons.length / course.lessons.length) * 100)
+    : 0;
   const note = state.notes[course.id] ?? "";
   const progress = state.progress[course.id] ?? 0;
 
   function handleVideoComplete() {
-    setProgress(course.id, Math.max(progress, 60));
+    void setProgress(course.id, Math.max(progress, 60));
   }
 
   function handleQuizPass(pct: number) {
-    saveQuizScore(course.quiz.id, pct);
-    setProgress(course.id, 100);
+    void saveQuizScore(course.quiz.id, pct);
+    void setProgress(course.id, 100);
   }
 
   return (
@@ -80,7 +91,7 @@ function CoursePage() {
         </Link>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => toggleFavorite(course.id)}
+            onClick={() => void toggleFavorite(course.id)}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
               isFav
                 ? "border-vsm-red bg-vsm-red/15 text-vsm-red"
@@ -181,7 +192,7 @@ function CoursePage() {
                     return (
                       <li key={l.id} className="flex items-center gap-3 px-5 py-3">
                         <button
-                          onClick={() => toggleLesson(course.id, l.id)}
+                          onClick={() => void toggleLesson(course.id, l.id)}
                           className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border transition ${
                             ok ? "border-vsm-red bg-vsm-red text-white" : "border-border text-muted-foreground"
                           }`}

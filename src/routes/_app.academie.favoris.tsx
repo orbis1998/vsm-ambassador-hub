@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Heart } from "lucide-react";
-import { allCourses } from "@/lib/academy-data";
+import { ArrowLeft, Heart, Loader2 } from "lucide-react";
 import { useAcademyStore } from "@/lib/academy-store";
+import { useCourseSummaries } from "@/hooks/use-academy";
 
 export const Route = createFileRoute("/_app/academie/favoris")({
   component: FavorisPage,
@@ -9,9 +9,19 @@ export const Route = createFileRoute("/_app/academie/favoris")({
 
 function FavorisPage() {
   const { state } = useAcademyStore();
+  const { data: allCourses = [], isLoading } = useCourseSummaries();
+
   const favs = state.favorites
     .map((id) => allCourses.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,7 +52,9 @@ function FavorisPage() {
               </div>
               <div className="p-4">
                 <p className="text-sm font-semibold">{c.title}</p>
-                <p className="text-xs text-muted-foreground">{c.duration} · {c.difficulty}</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.duration} · {c.difficulty}
+                </p>
               </div>
             </Link>
           ))}

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { BookOpen, Download, FileText, Search, Star } from "lucide-react";
-import { resources, type ResourceCategory } from "@/lib/academy-data";
+import { BookOpen, Download, FileText, Loader2, Search, Star } from "lucide-react";
+import { useAcademyResources } from "@/hooks/use-academy";
+import type { ResourceCategory } from "@/types/academy";
 
 export const Route = createFileRoute("/_app/ressources")({
   component: ResourcesPage,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/_app/ressources")({
 const ALL = "Tous" as const;
 
 function ResourcesPage() {
+  const { data: resources = [], isLoading } = useAcademyResources();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<typeof ALL | ResourceCategory>(ALL);
 
@@ -17,7 +19,7 @@ function ResourcesPage() {
     const set = new Set<ResourceCategory>();
     resources.forEach((r) => set.add(r.category));
     return [ALL, ...Array.from(set)] as const;
-  }, []);
+  }, [resources]);
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -26,7 +28,15 @@ function ResourcesPage() {
       if (!ql) return true;
       return r.title.toLowerCase().includes(ql) || r.category.toLowerCase().includes(ql);
     });
-  }, [q, cat]);
+  }, [q, cat, resources]);
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-vsm-red" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

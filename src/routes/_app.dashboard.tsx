@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Flame, Trophy, Award, Sparkles, BookOpen, Target, TrendingUp,
-  Crown, ChevronRight, Play, CheckCircle2, Clock, Bell,
+  Crown, ChevronRight, Bell,
 } from "lucide-react";
-import {
-  currentUser, stats, courses, activity, weeklyGoals,
-  leaderboard, notifications, opportunities, challenges,
-} from "@/lib/mock-data";
+import { useAuth } from "@/providers/auth-provider";
+import { useLeaderboard } from "@/hooks/use-ambassadors";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useChallenges, useActivityLogs } from "@/hooks/use-gamification";
+import { formatRelativeTime } from "@/services/ambassador.service";
+import { profileAvatarUrl } from "@/lib/program-tier";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({
@@ -19,8 +21,22 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function Dashboard() {
-  const activeCourses = courses.filter((c) => c.status === "in-progress");
-  const xpPct = Math.round((stats.xp / stats.xpNextLevel) * 100);
+  const { profile } = useAuth();
+  const { data: leaderboard = [] } = useLeaderboard(10);
+  const { data: notifications = [] } = useNotifications(4);
+  const { data: challenges = [] } = useChallenges();
+  const { data: activityLogs = [] } = useActivityLogs(5);
+  const activeChallenges = challenges.filter((c) => c.joined || c.type === "weekly").slice(0, 3);
+
+  const userXp = profile?.xp ?? 0;
+  const userPoints = profile?.points ?? 0;
+  const academyProgress = profile?.academyProgress ?? 0;
+  const xpNextLevel = Math.max(userXp + 500, 500);
+  const xpPct = Math.min(100, Math.round((userXp / xpNextLevel) * 100));
+  const firstName = profile?.name?.split(" ")[0] ?? "Ambassadeur";
+  const avatar = profile
+    ? profile.avatar || profileAvatarUrl(null, profile.email ?? profile.name)
+    : profileAvatarUrl(null, "vsm");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -33,9 +49,9 @@ function Dashboard() {
           <div className="flex min-w-0 items-center gap-4">
             <div className="relative shrink-0">
               <img
-                src={currentUser.avatar}
+                src={avatar}
                 alt=""
-                className="h-16 w-16 rounded-2xl border border-border bg-surface md:h-20 md:w-20"
+                className="h-16 w-16 rounded-2xl border border-border bg-surface object-cover md:h-20 md:w-20"
               />
               <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-background bg-vsm-red text-[10px] font-bold text-white shadow-glow-red">
                 <Crown className="h-3.5 w-3.5" />
@@ -43,13 +59,13 @@ function Dashboard() {
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
-                {currentUser.badge} · {currentUser.level}
+                {profile?.badge ?? "—"} · {profile?.level ?? "—"}
               </p>
               <h1 className="mt-1 truncate font-display text-2xl font-bold uppercase tracking-wide md:text-4xl">
-                Bienvenue, {currentUser.name.split(" ")[0]}.
+                Bienvenue, {firstName}.
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Dernière connexion : {currentUser.lastLogin} · {currentUser.country}
+                {profile?.country ?? "VSM Collection"}
               </p>
             </div>
           </div>
@@ -58,7 +74,7 @@ function Dashboard() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Progression globale
             </p>
-            <p className="font-display text-5xl font-bold text-gradient-red">{stats.progress}%</p>
+            <p className="font-display text-5xl font-bold text-gradient-red">{academyProgress}%</p>
           </div>
         </div>
 
@@ -66,10 +82,10 @@ function Dashboard() {
         <div className="relative mt-6">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold uppercase tracking-wider text-muted-foreground">
-              {stats.xp.toLocaleString()} XP
+              {userXp.toLocaleString()} XP
             </span>
             <span className="text-muted-foreground">
-              Prochain niveau : {stats.xpNextLevel.toLocaleString()} XP
+              Prochain palier Academy : {xpNextLevel.toLocaleString()} XP
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-surface">
@@ -84,12 +100,12 @@ function Dashboard() {
       {/* Stat cards */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {[
-          { icon: Flame, label: "XP", value: stats.xp.toLocaleString(), accent: true },
-          { icon: TrendingUp, label: "Points", value: stats.points.toLocaleString() },
-          { icon: BookOpen, label: "Cours actifs", value: stats.activeCourses },
-          { icon: CheckCircle2, label: "Terminés", value: stats.completedCourses },
-          { icon: Award, label: "Certificats", value: stats.certificates },
-          { icon: Sparkles, label: "Opportunités", value: stats.opportunities },
+          { icon: Flame, label: "XP Academy", value: userXp.toLocaleString(), accent: true },
+          { icon: TrendingUp, label: "Points", value: userPoints.toLocaleString() },
+          { icon: BookOpen, label: "Formation", value: `${academyProgress}%` },
+          { icon: Award, label: "Niveau", value: profile?.level ?? "—" },
+          { icon: Sparkles, label: "Badge", value: profile?.badge ?? "—" },
+          { icon: Crown, label: "Rôle", value: profile?.role === "ambassador" ? "Ambassadeur" : "—" },
         ].map((s, i) => {
           const Icon = s.icon;
           return (
@@ -118,161 +134,118 @@ function Dashboard() {
             title="Continuer la formation"
             action={<Link to="/academie" className="text-xs font-semibold uppercase tracking-wider text-vsm-red hover:underline">Voir tout</Link>}
           >
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {activeCourses.map((c) => (
-                <div
-                  key={c.id}
-                  className="group relative overflow-hidden rounded-xl border border-border bg-background transition-all hover:border-vsm-red/40"
-                >
-                  <div className="relative aspect-video overflow-hidden">
-                    <img src={c.cover} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                    <span className="absolute left-3 top-3 rounded-full bg-background/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
-                      {c.category}
-                    </span>
-                    <button className="absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-vsm-red text-white shadow-glow-red transition-transform group-hover:scale-110">
-                      <Play className="h-4 w-4 translate-x-0.5 fill-current" />
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="line-clamp-1 font-semibold">{c.title}</h3>
-                    <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{c.duration}</span>
-                      <span>·</span>
-                      <span>{c.lessons} leçons</span>
-                    </div>
-                    <div className="mt-3">
-                      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider">
-                        <span className="text-muted-foreground">Progression</span>
-                        <span className="text-vsm-red">{c.progress}%</span>
-                      </div>
-                      <div className="h-1 overflow-hidden rounded-full bg-surface">
-                        <div className="h-full rounded-full bg-vsm-red" style={{ width: `${c.progress}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-xl border border-dashed border-border bg-background p-8 text-center text-sm text-muted-foreground">
+              Aucun cours en cours. Explore l&apos;Académie pour commencer ta formation.
             </div>
           </Card>
 
-          {/* Activity */}
           <Card title="Activité récente">
-            <ol className="relative ml-3 space-y-4 border-l border-border pl-6">
-              {activity.map((a) => (
-                <li key={a.id} className="relative">
-                  <span className="absolute -left-[34px] grid h-7 w-7 place-items-center rounded-full border border-border bg-background text-base">
-                    {a.emoji}
-                  </span>
-                  <p className="text-sm text-foreground">{a.text}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{a.time}</p>
-                </li>
-              ))}
-            </ol>
+            {activityLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ton activité Academy apparaîtra ici.</p>
+            ) : (
+              <ul className="space-y-2">
+                {activityLogs.map((log) => (
+                  <li key={log.id} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                    <span className="font-medium capitalize">{log.event_type.replace(/_/g, " ")}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{formatRelativeTime(log.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
-          {/* Opportunities */}
           <Card
             title="Opportunités VSM"
             action={<Link to="/opportunites" className="text-xs font-semibold uppercase tracking-wider text-vsm-red hover:underline">Toutes</Link>}
           >
-            <div className="space-y-2">
-              {opportunities.slice(0, 3).map((o) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3 transition-all hover:border-vsm-red/40">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-vsm-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-vsm-red">{o.tag}</span>
-                      <span className="text-xs text-muted-foreground">{o.location}</span>
-                    </div>
-                    <p className="mt-1 truncate text-sm font-semibold">{o.title}</p>
-                    <p className="text-xs text-muted-foreground">Récompense : {o.reward} · Clôture dans {o.deadline}</p>
-                  </div>
-                  <button className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-vsm-red hover:text-white">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground">Les opportunités seront listées depuis la base Programme.</p>
           </Card>
         </div>
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* Weekly goals */}
-          <Card title="Objectifs de la semaine" icon={Target}>
-            <ul className="space-y-3">
-              {weeklyGoals.map((g) => {
-                const pct = Math.round((g.done / g.total) * 100);
-                const done = g.done >= g.total;
-                return (
-                  <li key={g.id}>
-                    <div className="mb-1.5 flex items-center justify-between text-sm">
-                      <span className={`flex items-center gap-2 ${done ? "text-muted-foreground line-through" : ""}`}>
-                        {done ? <CheckCircle2 className="h-4 w-4 text-vsm-red" /> : <span className="h-4 w-4 rounded-full border border-border" />}
-                        {g.title}
-                      </span>
-                      <span className="text-xs font-semibold text-muted-foreground">{g.done}/{g.total}</span>
+          <Card title="Objectifs de la semaine" icon={Target} action={<Link to="/defis" className="text-xs font-semibold uppercase tracking-wider text-vsm-red hover:underline">Voir tout</Link>}>
+            {challenges.filter((c) => c.type === "weekly").length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun défi hebdomadaire actif.</p>
+            ) : (
+              <ul className="space-y-2">
+                {challenges.filter((c) => c.type === "weekly").slice(0, 2).map((c) => (
+                  <li key={c.id} className="rounded-lg bg-background p-3">
+                    <p className="text-sm font-semibold">{c.title}</p>
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface">
+                      <div className="h-full bg-vsm-red" style={{ width: `${c.progress}%` }} />
                     </div>
-                    <div className="h-1 overflow-hidden rounded-full bg-surface">
-                      <div className="h-full bg-vsm-red" style={{ width: `${pct}%` }} />
-                    </div>
+                    <p className="mt-1 text-[10px] text-muted-foreground">+{c.reward_xp} XP · {c.deadline}</p>
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
           </Card>
 
-          {/* Active challenges */}
-          <Card title="Défis actifs" icon={Trophy}>
-            <div className="space-y-2">
-              {challenges.filter(c => c.status === "active").slice(0, 3).map((c) => (
-                <div key={c.id} className="rounded-lg border border-border bg-background p-3">
-                  <p className="text-sm font-semibold">{c.title}</p>
-                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{c.deadline}</span>
-                    <span className="rounded-full bg-vsm-red/15 px-2 py-0.5 font-bold text-vsm-red">+{c.reward} XP</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <Card title="Défis actifs" icon={Trophy} action={<Link to="/defis" className="text-xs font-semibold uppercase tracking-wider text-vsm-red hover:underline">Tous</Link>}>
+            {activeChallenges.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun défi actif. Rejoins-en un sur la page Défis.</p>
+            ) : (
+              <ul className="space-y-2">
+                {activeChallenges.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between rounded-lg bg-background p-3">
+                    <div>
+                      <p className="text-sm font-semibold">{c.title}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.type}</p>
+                    </div>
+                    <span className="font-display text-sm font-bold text-vsm-red">{c.progress}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           {/* Leaderboard */}
           <Card title="Classement Top 10" icon={Crown} action={<Link to="/classement" className="text-xs font-semibold uppercase tracking-wider text-vsm-red hover:underline">Plein</Link>}>
             <ol className="space-y-2">
-              {leaderboard.map((a) => {
-                const top3 = a.rank <= 3;
-                return (
-                  <li key={a.id} className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent/50">
-                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-bold ${
-                      top3 ? "bg-vsm-red text-white" : "bg-surface text-muted-foreground"
-                    }`}>
-                      {a.rank}
-                    </span>
-                    <img src={a.avatar} alt="" className="h-8 w-8 rounded-md bg-surface" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{a.name}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{a.level}</p>
-                    </div>
-                    <span className="shrink-0 text-xs font-bold text-vsm-red">{a.xp.toLocaleString()} XP</span>
-                  </li>
-                );
-              })}
+              {leaderboard.length === 0 ? (
+                <li className="py-4 text-center text-xs text-muted-foreground">Chargement du classement…</li>
+              ) : (
+                leaderboard.map((a, i) => {
+                  const rank = i + 1;
+                  const top3 = rank <= 3;
+                  return (
+                    <li key={a.id} className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent/50">
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-bold ${
+                        top3 ? "bg-vsm-red text-white" : "bg-surface text-muted-foreground"
+                      }`}>
+                        {rank}
+                      </span>
+                      <img src={a.avatar || profileAvatarUrl(null, a.name)} alt="" className="h-8 w-8 rounded-md bg-surface object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{a.name}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{a.level}</p>
+                      </div>
+                      <span className="shrink-0 text-xs font-bold text-vsm-red">{a.xp.toLocaleString()} XP</span>
+                    </li>
+                  );
+                })
+              )}
             </ol>
           </Card>
 
           {/* Notifications */}
           <Card title="Notifications" icon={Bell}>
             <ul className="space-y-2">
-              {notifications.slice(0, 4).map((n) => (
-                <li key={n.id} className="flex gap-3 rounded-lg border border-border bg-background p-3">
-                  {n.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-vsm-red" />}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{n.title}</p>
-                    <p className="line-clamp-1 text-xs text-muted-foreground">{n.body}</p>
-                  </div>
-                </li>
-              ))}
+              {notifications.length === 0 ? (
+                <li className="py-4 text-center text-xs text-muted-foreground">Aucune notification récente.</li>
+              ) : (
+                notifications.map((n) => (
+                  <li key={n.id} className="flex gap-3 rounded-lg border border-border bg-background p-3">
+                    {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-vsm-red" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{n.title}</p>
+                      <p className="line-clamp-1 text-xs text-muted-foreground">{n.body}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">{formatRelativeTime(n.created_at)}</p>
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           </Card>
         </div>

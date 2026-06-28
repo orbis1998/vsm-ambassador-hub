@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as StaffRouteImport } from './routes/_staff'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StaffLoginRouteImport } from './routes/staff.login'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AppRessourcesRouteImport } from './routes/_app.ressources'
 import { Route as AppRechercheRouteImport } from './routes/_app.recherche'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
@@ -26,7 +29,12 @@ import { Route as AppClassementRouteImport } from './routes/_app.classement'
 import { Route as AppCertificatsRouteImport } from './routes/_app.certificats'
 import { Route as AppAdminRouteImport } from './routes/_app.admin'
 import { Route as AppAcademieRouteImport } from './routes/_app.academie'
+import { Route as StaffStaffIndexRouteImport } from './routes/_staff.staff.index'
 import { Route as AppAcademieIndexRouteImport } from './routes/_app.academie.index'
+import { Route as StaffStaffResourcesRouteImport } from './routes/_staff.staff.resources'
+import { Route as StaffStaffModerationRouteImport } from './routes/_staff.staff.moderation'
+import { Route as StaffStaffApplicationsRouteImport } from './routes/_staff.staff.applications'
+import { Route as StaffStaffAcademyRouteImport } from './routes/_staff.staff.academy'
 import { Route as AppCommunauteGroupesRouteImport } from './routes/_app.communaute.groupes'
 import { Route as AppAmbassadeurIdRouteImport } from './routes/_app.ambassadeur.$id'
 import { Route as AppAcademieHistoriqueRouteImport } from './routes/_app.academie.historique'
@@ -40,6 +48,10 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/_staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -47,6 +59,16 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffLoginRoute = StaffLoginRouteImport.update({
+  id: '/staff/login',
+  path: '/staff/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRessourcesRoute = AppRessourcesRouteImport.update({
@@ -119,10 +141,35 @@ const AppAcademieRoute = AppAcademieRouteImport.update({
   path: '/academie',
   getParentRoute: () => AppRoute,
 } as any)
+const StaffStaffIndexRoute = StaffStaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => StaffRoute,
+} as any)
 const AppAcademieIndexRoute = AppAcademieIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppAcademieRoute,
+} as any)
+const StaffStaffResourcesRoute = StaffStaffResourcesRouteImport.update({
+  id: '/staff/resources',
+  path: '/staff/resources',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffStaffModerationRoute = StaffStaffModerationRouteImport.update({
+  id: '/staff/moderation',
+  path: '/staff/moderation',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffStaffApplicationsRoute = StaffStaffApplicationsRouteImport.update({
+  id: '/staff/applications',
+  path: '/staff/applications',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffStaffAcademyRoute = StaffStaffAcademyRouteImport.update({
+  id: '/staff/academy',
+  path: '/staff/academy',
+  getParentRoute: () => StaffRoute,
 } as any)
 const AppCommunauteGroupesRoute = AppCommunauteGroupesRouteImport.update({
   id: '/groupes',
@@ -177,11 +224,18 @@ export interface FileRoutesByFullPath {
   '/profil': typeof AppProfilRoute
   '/recherche': typeof AppRechercheRoute
   '/ressources': typeof AppRessourcesRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/staff/login': typeof StaffLoginRoute
   '/academie/favoris': typeof AppAcademieFavorisRoute
   '/academie/historique': typeof AppAcademieHistoriqueRoute
   '/ambassadeur/$id': typeof AppAmbassadeurIdRoute
   '/communaute/groupes': typeof AppCommunauteGroupesRouteWithChildren
+  '/staff/academy': typeof StaffStaffAcademyRoute
+  '/staff/applications': typeof StaffStaffApplicationsRoute
+  '/staff/moderation': typeof StaffStaffModerationRoute
+  '/staff/resources': typeof StaffStaffResourcesRoute
   '/academie/': typeof AppAcademieIndexRoute
+  '/staff/': typeof StaffStaffIndexRoute
   '/academie/cours/$id': typeof AppAcademieCoursIdRoute
   '/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
   '/communaute/groupes/$id': typeof AppCommunauteGroupesIdRoute
@@ -202,11 +256,18 @@ export interface FileRoutesByTo {
   '/profil': typeof AppProfilRoute
   '/recherche': typeof AppRechercheRoute
   '/ressources': typeof AppRessourcesRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/staff/login': typeof StaffLoginRoute
   '/academie/favoris': typeof AppAcademieFavorisRoute
   '/academie/historique': typeof AppAcademieHistoriqueRoute
   '/ambassadeur/$id': typeof AppAmbassadeurIdRoute
   '/communaute/groupes': typeof AppCommunauteGroupesRouteWithChildren
+  '/staff/academy': typeof StaffStaffAcademyRoute
+  '/staff/applications': typeof StaffStaffApplicationsRoute
+  '/staff/moderation': typeof StaffStaffModerationRoute
+  '/staff/resources': typeof StaffStaffResourcesRoute
   '/academie': typeof AppAcademieIndexRoute
+  '/staff': typeof StaffStaffIndexRoute
   '/academie/cours/$id': typeof AppAcademieCoursIdRoute
   '/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
   '/communaute/groupes/$id': typeof AppCommunauteGroupesIdRoute
@@ -215,6 +276,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/_staff': typeof StaffRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/academie': typeof AppAcademieRouteWithChildren
   '/_app/admin': typeof AppAdminRoute
@@ -230,11 +292,18 @@ export interface FileRoutesById {
   '/_app/profil': typeof AppProfilRoute
   '/_app/recherche': typeof AppRechercheRoute
   '/_app/ressources': typeof AppRessourcesRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/staff/login': typeof StaffLoginRoute
   '/_app/academie/favoris': typeof AppAcademieFavorisRoute
   '/_app/academie/historique': typeof AppAcademieHistoriqueRoute
   '/_app/ambassadeur/$id': typeof AppAmbassadeurIdRoute
   '/_app/communaute/groupes': typeof AppCommunauteGroupesRouteWithChildren
+  '/_staff/staff/academy': typeof StaffStaffAcademyRoute
+  '/_staff/staff/applications': typeof StaffStaffApplicationsRoute
+  '/_staff/staff/moderation': typeof StaffStaffModerationRoute
+  '/_staff/staff/resources': typeof StaffStaffResourcesRoute
   '/_app/academie/': typeof AppAcademieIndexRoute
+  '/_staff/staff/': typeof StaffStaffIndexRoute
   '/_app/academie/cours/$id': typeof AppAcademieCoursIdRoute
   '/_app/academie/parcours/$id': typeof AppAcademieParcoursIdRoute
   '/_app/communaute/groupes/$id': typeof AppCommunauteGroupesIdRoute
@@ -258,11 +327,18 @@ export interface FileRouteTypes {
     | '/profil'
     | '/recherche'
     | '/ressources'
+    | '/auth/callback'
+    | '/staff/login'
     | '/academie/favoris'
     | '/academie/historique'
     | '/ambassadeur/$id'
     | '/communaute/groupes'
+    | '/staff/academy'
+    | '/staff/applications'
+    | '/staff/moderation'
+    | '/staff/resources'
     | '/academie/'
+    | '/staff/'
     | '/academie/cours/$id'
     | '/academie/parcours/$id'
     | '/communaute/groupes/$id'
@@ -283,11 +359,18 @@ export interface FileRouteTypes {
     | '/profil'
     | '/recherche'
     | '/ressources'
+    | '/auth/callback'
+    | '/staff/login'
     | '/academie/favoris'
     | '/academie/historique'
     | '/ambassadeur/$id'
     | '/communaute/groupes'
+    | '/staff/academy'
+    | '/staff/applications'
+    | '/staff/moderation'
+    | '/staff/resources'
     | '/academie'
+    | '/staff'
     | '/academie/cours/$id'
     | '/academie/parcours/$id'
     | '/communaute/groupes/$id'
@@ -295,6 +378,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/_staff'
     | '/login'
     | '/_app/academie'
     | '/_app/admin'
@@ -310,11 +394,18 @@ export interface FileRouteTypes {
     | '/_app/profil'
     | '/_app/recherche'
     | '/_app/ressources'
+    | '/auth/callback'
+    | '/staff/login'
     | '/_app/academie/favoris'
     | '/_app/academie/historique'
     | '/_app/ambassadeur/$id'
     | '/_app/communaute/groupes'
+    | '/_staff/staff/academy'
+    | '/_staff/staff/applications'
+    | '/_staff/staff/moderation'
+    | '/_staff/staff/resources'
     | '/_app/academie/'
+    | '/_staff/staff/'
     | '/_app/academie/cours/$id'
     | '/_app/academie/parcours/$id'
     | '/_app/communaute/groupes/$id'
@@ -323,7 +414,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  StaffRoute: typeof StaffRouteWithChildren
   LoginRoute: typeof LoginRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  StaffLoginRoute: typeof StaffLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -333,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_staff': {
+      id: '/_staff'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -347,6 +448,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/login': {
+      id: '/staff/login'
+      path: '/staff/login'
+      fullPath: '/staff/login'
+      preLoaderRoute: typeof StaffLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/ressources': {
@@ -447,12 +562,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAcademieRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_staff/staff/': {
+      id: '/_staff/staff/'
+      path: '/staff'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffStaffIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_app/academie/': {
       id: '/_app/academie/'
       path: '/'
       fullPath: '/academie/'
       preLoaderRoute: typeof AppAcademieIndexRouteImport
       parentRoute: typeof AppAcademieRoute
+    }
+    '/_staff/staff/resources': {
+      id: '/_staff/staff/resources'
+      path: '/staff/resources'
+      fullPath: '/staff/resources'
+      preLoaderRoute: typeof StaffStaffResourcesRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/staff/moderation': {
+      id: '/_staff/staff/moderation'
+      path: '/staff/moderation'
+      fullPath: '/staff/moderation'
+      preLoaderRoute: typeof StaffStaffModerationRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/staff/applications': {
+      id: '/_staff/staff/applications'
+      path: '/staff/applications'
+      fullPath: '/staff/applications'
+      preLoaderRoute: typeof StaffStaffApplicationsRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/_staff/staff/academy': {
+      id: '/_staff/staff/academy'
+      path: '/staff/academy'
+      fullPath: '/staff/academy'
+      preLoaderRoute: typeof StaffStaffAcademyRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/_app/communaute/groupes': {
       id: '/_app/communaute/groupes'
@@ -587,11 +737,42 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface StaffRouteChildren {
+  StaffStaffAcademyRoute: typeof StaffStaffAcademyRoute
+  StaffStaffApplicationsRoute: typeof StaffStaffApplicationsRoute
+  StaffStaffModerationRoute: typeof StaffStaffModerationRoute
+  StaffStaffResourcesRoute: typeof StaffStaffResourcesRoute
+  StaffStaffIndexRoute: typeof StaffStaffIndexRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffStaffAcademyRoute: StaffStaffAcademyRoute,
+  StaffStaffApplicationsRoute: StaffStaffApplicationsRoute,
+  StaffStaffModerationRoute: StaffStaffModerationRoute,
+  StaffStaffResourcesRoute: StaffStaffResourcesRoute,
+  StaffStaffIndexRoute: StaffStaffIndexRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  StaffRoute: StaffRouteWithChildren,
   LoginRoute: LoginRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  StaffLoginRoute: StaffLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
