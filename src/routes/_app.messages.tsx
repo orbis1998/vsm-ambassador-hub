@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Loader2, MessageSquare, CheckCheck, MoreVertical } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import { StoryViewerModal } from "@/components/story-viewer-modal";
 import { formatRelativeTime } from "@/services/ambassador.service";
 import { fetchStoryById } from "@/services/social.service";
 import { profileAvatarUrl } from "@/lib/program-tier";
+import { useDismissOnOutsidePress } from "@/hooks/use-dismiss-on-outside-press";
 import type { Conversation, Message } from "@/types/messaging";
 
 type MessagesSearch = { with?: string; conv?: string; story?: string };
@@ -109,12 +110,12 @@ function MessagesPage() {
   }
 
   return (
-    <div className="relative mx-auto h-[calc(100dvh-7rem)] max-w-6xl overflow-hidden rounded-2xl border border-border bg-surface md:h-[calc(100vh-9rem)]">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface md:mx-auto md:max-w-6xl md:rounded-2xl md:border md:border-border md:h-[calc(100vh-9rem)]">
       {openStoryId && (
         <StoryViewerModal storyId={openStoryId} onClose={() => setOpenStoryId(null)} />
       )}
-      <div className="grid h-full grid-cols-1 md:grid-cols-[320px_1fr]">
-        <aside className={`flex flex-col border-r border-border ${activeId ? "hidden md:flex" : "flex"}`}>
+      <div className="grid h-full min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[320px_1fr]">
+        <aside className={`flex min-h-0 flex-col border-r border-border ${activeId ? "hidden md:flex" : "flex"}`}>
           <div className="border-b border-border p-4">
             <h2 className="font-display text-lg font-bold uppercase tracking-wide">Messages</h2>
             <div className="relative mt-3">
@@ -148,7 +149,7 @@ function MessagesPage() {
           </ul>
         </aside>
 
-        <section className={`flex min-h-0 flex-col ${!activeId ? "hidden md:flex" : "flex"}`}>
+        <section className={`flex min-h-0 flex-1 flex-col overflow-hidden ${!activeId ? "hidden md:flex" : "flex"}`}>
           {!activeId ? (
             <div className="grid flex-1 place-items-center p-8 text-center text-sm text-muted-foreground">
               <MessageSquare className="mx-auto mb-3 h-10 w-10 text-vsm-red/50" />
@@ -156,18 +157,32 @@ function MessagesPage() {
             </div>
           ) : (
             <>
-              <header className="flex items-center gap-2 border-b border-[#d1d7db] bg-[#f0f2f5] px-3 py-2.5 dark:border-border dark:bg-surface md:px-4 md:py-3">
+              <header className="flex shrink-0 items-center gap-2 border-b border-[#d1d7db] bg-[#f0f2f5] px-3 py-2.5 dark:border-border dark:bg-surface md:px-4 md:py-3">
                 <button type="button" className="text-xs uppercase text-vsm-red md:hidden" onClick={() => { setActiveId(null); navigate({ search: {} }); }}>
                   ←
                 </button>
-                <img src={otherUser?.avatar ?? profileAvatarUrl(null, displayTitle)} alt="" className="h-9 w-9 rounded-lg object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{displayTitle}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {typingUser ? "écrit…" : lastSeen ? `vu ${formatRelativeTime(lastSeen)}` : otherUser?.level ?? ""}
-                  </p>
-                </div>
-                <div className="hidden w-40 sm:block">
+                {otherId ? (
+                  <Link to="/ambassadeur/$id" params={{ id: otherId }} className="flex min-w-0 flex-1 items-center gap-2">
+                    <img src={otherUser?.avatar ?? profileAvatarUrl(null, displayTitle)} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold hover:text-vsm-red">{displayTitle}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {typingUser ? "écrit…" : lastSeen ? `vu ${formatRelativeTime(lastSeen)}` : otherUser?.level ?? ""}
+                      </p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <img src={otherUser?.avatar ?? profileAvatarUrl(null, displayTitle)} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{displayTitle}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {typingUser ? "écrit…" : lastSeen ? `vu ${formatRelativeTime(lastSeen)}` : otherUser?.level ?? ""}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="hidden w-40 shrink-0 sm:block">
                   <input
                     value={msgSearch}
                     onChange={(e) => setMsgSearch(e.target.value)}
@@ -177,7 +192,10 @@ function MessagesPage() {
                 </div>
               </header>
 
-              <div className="flex-1 space-y-1 overflow-y-auto bg-[#efeae2] p-2 dark:bg-background md:space-y-2 md:p-4" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4cdc4' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#efeae2] p-2 dark:bg-background md:space-y-2 md:p-4"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4cdc4' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}
+              >
                 {loadingMessages ? (
                   <div className="grid place-items-center py-12"><Loader2 className="h-6 w-6 animate-spin text-vsm-red" /></div>
                 ) : (
@@ -199,7 +217,8 @@ function MessagesPage() {
                 )}
               </div>
 
-              <MessageComposer
+              <div className="shrink-0 border-t border-[#d1d7db] bg-[#f0f2f5] dark:border-border dark:bg-surface">
+                <MessageComposer
                 draft={draft}
                 onDraftChange={setDraft}
                 replyTo={replyTo}
@@ -209,7 +228,8 @@ function MessagesPage() {
                 onSendVoice={(b) => activeId && void sendVoice.mutateAsync({ conversationId: activeId, blob: b })}
                 sending={send.isPending}
                 onTyping={() => activeId && notifyTyping(activeId)}
-              />
+                />
+              </div>
             </>
           )}
         </section>
@@ -244,6 +264,8 @@ function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(m.body);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useDismissOnOutsidePress(menuRef, menuOpen, () => setMenuOpen(false));
   const { data: story } = useQuery({
     queryKey: ["story-reply", m.story_id],
     queryFn: () => fetchStoryById(m.story_id!),
@@ -258,6 +280,7 @@ function MessageBubble({
   return (
     <div className={`group flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div
+        ref={menuRef}
         className={`relative max-w-[88%] rounded-lg px-3 py-2 text-sm shadow-sm sm:max-w-[85%] sm:rounded-2xl ${
           isMine
             ? "rounded-br-none bg-[#d9fdd3] text-[#111b21] dark:bg-vsm-red dark:text-white"
@@ -324,7 +347,14 @@ function MessageBubble({
           <MoreVertical className="h-3.5 w-3.5" />
         </button>
         {menuOpen && (
-          <div className={`absolute z-20 min-w-[180px] rounded-lg border py-1 text-xs shadow-lg ${isMine ? "right-0 top-7 border-border bg-white text-foreground dark:bg-popover" : "left-0 top-7 border-border bg-popover text-foreground"}`}>
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-10"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Fermer le menu"
+            />
+            <div className={`absolute z-20 min-w-[180px] rounded-lg border py-1 text-xs shadow-lg ${isMine ? "right-0 top-7 border-border bg-white text-foreground dark:bg-popover" : "left-0 top-7 border-border bg-popover text-foreground"}`}>
             {!deleted && (
               <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onReply(); setMenuOpen(false); }}>Répondre</button>
             )}
@@ -335,7 +365,8 @@ function MessageBubble({
               <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onDeleteForAll(); setMenuOpen(false); }}>Supprimer pour tous</button>
             )}
             <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onDeleteForMe(); setMenuOpen(false); }}>Supprimer pour moi</button>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -361,19 +392,31 @@ function ConversationListItem({
 
   return (
     <li>
-      <button onClick={onSelect} className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
-        <img src={avatar} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
-        <div className="min-w-0 flex-1">
+      <div className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
+        {otherId ? (
+          <Link to="/ambassadeur/$id" params={{ id: otherId }} className="shrink-0">
+            <img src={avatar} alt="" className="h-11 w-11 rounded-lg object-cover" />
+          </Link>
+        ) : (
+          <img src={avatar} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+        )}
+        <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold">{name}</p>
+            {otherId ? (
+              <Link to="/ambassadeur/$id" params={{ id: otherId }} onClick={(e) => e.stopPropagation()} className="truncate text-sm font-semibold hover:text-vsm-red">
+                {name}
+              </Link>
+            ) : (
+              <p className="truncate text-sm font-semibold">{name}</p>
+            )}
             <span className="shrink-0 text-[10px] text-muted-foreground">{formatRelativeTime(c.last_at)}</span>
           </div>
           <p className="truncate text-xs text-muted-foreground">{c.last_message || "—"}</p>
-        </div>
+        </button>
         {unread > 0 && (
           <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-vsm-red px-1 text-[10px] font-bold text-white">{unread}</span>
         )}
-      </button>
+      </div>
     </li>
   );
 }

@@ -269,10 +269,13 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
   let likeCounts = new Map<string, number>();
   if (userId && data?.length) {
     const storyIds = data.map((s) => (s as { id: string }).id);
+    const authorByStory = new Map(
+      (data as { id: string; author_id: string }[]).map((s) => [s.id, s.author_id]),
+    );
     const [{ data: views }, likes, { data: allViews }, { data: allLikes }] = await Promise.all([
       supabase.from("social_story_views").select("story_id").eq("viewer_id", userId).in("story_id", storyIds),
       fetchStoryLikeState(userId, storyIds),
-      supabase.from("social_story_views").select("story_id").in("story_id", storyIds),
+      supabase.from("social_story_views").select("story_id, viewer_id").in("story_id", storyIds),
       supabase.from("social_story_likes").select("story_id").in("story_id", storyIds),
     ]);
     viewedIds = new Set((views ?? []).map((v) => (v as { story_id: string }).story_id));
@@ -282,8 +285,9 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
       likeCounts.set(id, 0);
     }
     for (const row of allViews ?? []) {
-      const sid = (row as { story_id: string }).story_id;
-      viewCounts.set(sid, (viewCounts.get(sid) ?? 0) + 1);
+      const r = row as { story_id: string; viewer_id: string };
+      if (r.viewer_id === authorByStory.get(r.story_id)) continue;
+      viewCounts.set(r.story_id, (viewCounts.get(r.story_id) ?? 0) + 1);
     }
     for (const row of allLikes ?? []) {
       const sid = (row as { story_id: string }).story_id;
@@ -378,6 +382,9 @@ async function fetchStoryProfiles(userIds: string[]): Promise<Map<string, StoryV
 
 export async function fetchStoryViewers(storyId: string): Promise<StoryViewer[]> {
   const supabase = socialDb();
+  const { data: storyRow } = await supabase.from("social_stories").select("author_id").eq("id", storyId).maybeSingle();
+  const authorId = (storyRow as { author_id?: string } | null)?.author_id;
+
   const { data, error } = await supabase
     .from("social_story_views")
     .select("viewer_id, viewed_at")
@@ -386,13 +393,19 @@ export async function fetchStoryViewers(storyId: string): Promise<StoryViewer[]>
     .limit(50);
   if (error || !data?.length) return [];
 
-  const ids = [...new Set((data as { viewer_id: string }[]).map((r) => r.viewer_id))];
+  const ids = [...new Set((data as { viewer_id: string }[]).map((r) => r.viewer_id))].filter(
+    (id) => id !== authorId,
+  );
   const byId = await fetchStoryProfiles(ids);
   return ids.map((id) => byId.get(id) ?? { id, name: "Ambassadeur" });
 }
 
 export async function markStoryViewed(userId: string, storyId: string): Promise<void> {
   const supabase = socialDb();
+  const { data: storyRow } = await supabase.from("social_stories").select("author_id").eq("id", storyId).maybeSingle();
+  const authorId = (storyRow as { author_id?: string } | null)?.author_id;
+  if (authorId === userId) return;
+
   const { error } = await supabase.from("social_story_views").upsert(
     { story_id: storyId, viewer_id: userId, viewed_at: new Date().toISOString() },
     { onConflict: "story_id,viewer_id" },
@@ -854,7 +867,11 @@ export async function fetchStoryById(storyId: string): Promise<Story | null> {
   if (error || !data) return null;
   const row = data as { id: string; author_id: string; created_at: string; expires_at: string; media_url: string; caption?: string };
   const [{ count: viewCount }, { count: likeCount }] = await Promise.all([
-    supabase.from("social_story_views").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+    supabase
+      .from("social_story_views")
+      .select("*", { count: "exact", head: true })
+      .eq("story_id", storyId)
+      .neq("viewer_id", row.author_id),
     supabase.from("social_story_likes").select("*", { count: "exact", head: true }).eq("story_id", storyId),
   ]);
   return {

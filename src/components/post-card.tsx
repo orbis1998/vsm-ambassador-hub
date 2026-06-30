@@ -16,6 +16,8 @@ import { formatRelativeTime } from "@/services/ambassador.service";
 
 import { PostMediaCarousel } from "@/components/post-media-carousel";
 
+import { useDismissOnOutsidePress } from "@/hooks/use-dismiss-on-outside-press";
+
 import { toast } from "sonner";
 
 
@@ -47,6 +49,9 @@ export function PostCard({ post }: { post: Post }) {
   const [replyToComment, setReplyToComment] = useState<Comment | null>(null);
 
   const [showReactions, setShowReactions] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  useDismissOnOutsidePress(menuRef, showMenu, () => setShowMenu(false));
 
   const [showComments, setShowComments] = useState(false);
 
@@ -176,7 +181,7 @@ export function PostCard({ post }: { post: Post }) {
 
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setShowMenu((v) => !v)}
@@ -185,7 +190,14 @@ export function PostCard({ post }: { post: Post }) {
             <MoreHorizontal className="h-4 w-4" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-9 z-20 min-w-[160px] rounded-lg border border-border bg-popover py-1 shadow-lg">
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-10"
+                onClick={() => setShowMenu(false)}
+                aria-label="Fermer le menu"
+              />
+              <div className="absolute right-0 top-9 z-20 min-w-[160px] rounded-lg border border-border bg-popover py-1 shadow-lg">
               {isOwner ? (
                 <>
                   <button type="button" onClick={() => { setEditing(true); setEditText(post.text); setShowMenu(false); }} className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-accent">
@@ -217,7 +229,8 @@ export function PostCard({ post }: { post: Post }) {
                   </button>
                 </>
               )}
-            </div>
+              </div>
+            </>
           )}
         </div>
 

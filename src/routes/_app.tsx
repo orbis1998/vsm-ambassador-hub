@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -17,6 +17,8 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const navigate = useNavigate();
   const browser = useIsBrowser();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isMessagesRoute = pathname.startsWith("/messages");
   const { session, loading, refreshProfile } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const configured = isSupabaseConfigured();
@@ -80,12 +82,18 @@ function AppLayout() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8">
+        <main
+          className={
+            isMessagesRoute
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0 md:px-6 md:py-8 md:pb-8"
+              : "flex-1 px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
+          }
+        >
           <Outlet />
         </main>
-        <MobileNav />
+        {!isMessagesRoute && <MobileNav />}
       </div>
     </div>
   );

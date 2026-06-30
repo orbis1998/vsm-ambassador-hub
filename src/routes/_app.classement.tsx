@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Crown, Trophy, Loader2 } from "lucide-react";
 import { useLeaderboard } from "@/hooks/use-ambassadors";
@@ -73,32 +73,39 @@ function LeaderboardPage() {
       {/* Podium */}
       <div className="grid gap-3 sm:grid-cols-3">
         {ranked.slice(0, 3).map((a, i) => (
-          <div key={a.id} className={`relative overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center ${i === 0 ? "sm:order-2 sm:-mt-2 sm:border-vsm-red shadow-glow-red" : i === 1 ? "sm:order-1" : "sm:order-3"}`}>
+          <Link
+            key={a.id}
+            to="/ambassadeur/$id"
+            params={{ id: a.id }}
+            className={`relative block overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center transition-colors hover:border-vsm-red/40 ${i === 0 ? "sm:order-2 sm:-mt-2 sm:border-vsm-red shadow-glow-red" : i === 1 ? "sm:order-1" : "sm:order-3"}`}
+          >
             <span className={`grid h-12 w-12 mx-auto place-items-center rounded-full ${i === 0 ? "bg-vsm-red text-white" : "bg-surface-elevated text-vsm-red"}`}>
               <Trophy className="h-6 w-6" />
             </span>
-            <img src={a.avatar} alt="" className="mx-auto mt-3 h-16 w-16 rounded-2xl bg-background" />
+            <img src={a.avatar} alt="" className="mx-auto mt-3 h-16 w-16 rounded-2xl bg-background object-cover" />
             <p className="mt-2 font-display text-base font-bold uppercase">{a.name}</p>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{a.badge}</p>
             <p className="mt-2 font-display text-2xl font-bold text-vsm-red">{a.xp.toLocaleString()} XP</p>
-          </div>
+          </Link>
         ))}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         <ol className="divide-y divide-border">
           {ranked.slice(3).map((a) => (
-            <li key={a.id} className="flex items-center gap-4 p-3 transition-colors hover:bg-accent/40">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background font-mono text-sm font-bold text-muted-foreground">{a.rank}</span>
-              <img src={a.avatar} alt="" className="h-10 w-10 rounded-lg bg-background" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{a.name}</p>
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{a.badge} · {a.country}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{scope === "points" ? "Points" : "XP"}</p>
-                <p className="font-display text-base font-bold text-vsm-red">{(scope === "points" ? a.points : a.xp).toLocaleString()}</p>
-              </div>
+            <li key={a.id}>
+              <Link to="/ambassadeur/$id" params={{ id: a.id }} className="flex items-center gap-4 p-3 transition-colors hover:bg-accent/40">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background font-mono text-sm font-bold text-muted-foreground">{a.rank}</span>
+                <img src={a.avatar} alt="" className="h-10 w-10 rounded-lg bg-background object-cover" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{a.name}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{a.badge} · {a.country}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{scope === "points" ? "Points" : "XP"}</p>
+                  <p className="font-display text-base font-bold text-vsm-red">{(scope === "points" ? a.points : a.xp).toLocaleString()}</p>
+                </div>
+              </Link>
             </li>
           ))}
         </ol>

@@ -175,7 +175,9 @@ export function Topbar({ onMenuClick }: Props) {
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
           {open === "user" && (
-            <div className="animate-fade-up absolute right-0 top-12 w-56 overflow-hidden rounded-xl border border-border bg-popover shadow-elegant">
+            <>
+              <button type="button" className="fixed inset-0 z-40" onClick={() => setOpen(null)} aria-label="Fermer" />
+              <div className="animate-fade-up absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-border bg-popover shadow-elegant">
               <div className="border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{displayBadge}</p>
@@ -197,7 +199,8 @@ export function Topbar({ onMenuClick }: Props) {
                   </Link>
                 </li>
               </ul>
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>

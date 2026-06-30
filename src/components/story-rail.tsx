@@ -28,7 +28,7 @@ export function StoryRail() {
     setActiveGroupIdx(groupIdx);
     setActiveStoryIdx(0);
     const story = groups[groupIdx]?.stories[0];
-    if (story && !story.viewed) viewStory.mutate(story.id);
+    if (story && !story.viewed && story.author_id !== me?.id) viewStory.mutate(story.id);
   };
 
   const goStory = (nextIdx: number) => {
@@ -36,7 +36,7 @@ export function StoryRail() {
     const clamped = Math.max(0, Math.min(activeGroup.stories.length - 1, nextIdx));
     setActiveStoryIdx(clamped);
     const story = activeGroup.stories[clamped];
-    if (story && !story.viewed) viewStory.mutate(story.id);
+    if (story && !story.viewed && story.author_id !== me?.id) viewStory.mutate(story.id);
   };
 
   const goGroup = (delta: number) => {
@@ -49,7 +49,7 @@ export function StoryRail() {
     setActiveGroupIdx(next);
     setActiveStoryIdx(0);
     const story = groups[next]?.stories[0];
-    if (story && !story.viewed) viewStory.mutate(story.id);
+    if (story && !story.viewed && story.author_id !== me?.id) viewStory.mutate(story.id);
   };
 
   return (
@@ -272,22 +272,32 @@ function StoryViewer({
         </div>
 
         {isOwner && (
-          <div className="absolute inset-x-3 bottom-3 z-20 space-y-2">
-            <div className="flex justify-center gap-3 rounded-lg bg-black/50 px-3 py-2 text-xs text-white backdrop-blur">
-              <button type="button" onClick={() => openPanel("viewers")} className="inline-flex items-center gap-1 hover:underline">
-                <Eye className="h-3.5 w-3.5" /> {viewCount} vues
-              </button>
-              <button type="button" onClick={() => openPanel("likers")} className="inline-flex items-center gap-1 hover:underline">
-                <Heart className="h-3.5 w-3.5" /> {Math.max(likeCount, likers.length)} likes
-              </button>
+          <>
+            {panel && (
+              <button
+                type="button"
+                className="absolute inset-0 z-30 bg-black/50"
+                onClick={() => setPanel(null)}
+                aria-label="Fermer la liste"
+              />
+            )}
+            <div className="absolute inset-x-3 bottom-3 z-40 space-y-2">
+              <div className="flex justify-center gap-3 rounded-lg bg-black/50 px-3 py-2 text-xs text-white backdrop-blur">
+                <button type="button" onClick={() => openPanel("viewers")} className="inline-flex items-center gap-1 hover:underline">
+                  <Eye className="h-3.5 w-3.5" /> {viewCount} vues
+                </button>
+                <button type="button" onClick={() => openPanel("likers")} className="inline-flex items-center gap-1 hover:underline">
+                  <Heart className="h-3.5 w-3.5" /> {Math.max(likeCount, likers.length)} likes
+                </button>
+              </div>
+              {panel === "viewers" && (
+                <StoryPeopleList title="Vu par" people={viewers} onClose={() => setPanel(null)} />
+              )}
+              {panel === "likers" && (
+                <StoryPeopleList title="Aimé par" people={likers} onClose={() => setPanel(null)} />
+              )}
             </div>
-            {panel === "viewers" && (
-              <StoryPeopleList title="Vu par" people={viewers} onClose={() => setPanel(null)} />
-            )}
-            {panel === "likers" && (
-              <StoryPeopleList title="Aimé par" people={likers} onClose={() => setPanel(null)} />
-            )}
-          </div>
+          </>
         )}
 
         {story.caption && (
@@ -337,7 +347,17 @@ function StoryPeopleList({
     <div className="max-h-40 overflow-y-auto rounded-xl bg-black/80 p-3 text-xs text-white backdrop-blur">
       <div className="mb-2 flex items-center justify-between">
         <p className="font-semibold">{title}</p>
-        <button type="button" onClick={onClose} className="text-white/70 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+          aria-label="Fermer"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
       {people.length === 0 ? (
         <p className="text-white/60">Personne pour le moment.</p>
