@@ -66,7 +66,7 @@ export function MessageComposer({
   };
 
   return (
-    <div className="border-t border-[#d1d7db] bg-[#f0f2f5] p-2 dark:border-border dark:bg-background">
+    <div className="shrink-0 border-t border-[#d1d7db] bg-[#f0f2f5] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] dark:border-border dark:bg-background">
       {replyTo && (
         <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-[#25d366] bg-white px-3 py-2 text-xs dark:border-vsm-red dark:bg-surface">
           <span className="truncate text-muted-foreground">Réponse : {replyTo.body.slice(0, 80)}</span>

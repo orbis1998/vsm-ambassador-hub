@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import { invalidateProfileCache, updateAcademyProfile, type AcademyProfileUpdate } from "@/services/profile.service";
 import { uploadProfileImage } from "@/services/storage.service";
@@ -33,7 +34,9 @@ export function useProfileEdit() {
     onSuccess: async () => {
       invalidateProfileCache();
       await refreshProfile?.();
+      toast.success("Couverture mise à jour");
     },
+    onError: () => toast.error("Impossible de mettre à jour la couverture"),
   });
 
   return { update, uploadAvatar, uploadCover };

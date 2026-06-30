@@ -364,7 +364,7 @@ export async function updateAcademyProfile(
   if (row) {
     const r = row as { cover_url?: string | null; avatar_url?: string | null; bio?: string | null; handle?: string | null; country?: string | null };
     if (r.bio != null) profile.bio = r.bio ?? undefined;
-    if (r.cover_url) profile.cover = r.cover_url;
+    if (r.cover_url != null) profile.cover = r.cover_url || undefined;
     if (r.handle) profile.handle = r.handle;
     if (r.country) profile.country = r.country;
     profile.avatar = profileAvatarUrl(r.avatar_url, profile.email ?? profile.name);

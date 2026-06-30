@@ -52,7 +52,7 @@ export async function uploadProfileImage(
   if (error) throw error;
 
   const { data } = supabase.storage.from("academy-avatars").getPublicUrl(path);
-  return data.publicUrl;
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
 export async function uploadAcademyAsset(file: File, folder: "covers" | "lessons"): Promise<string> {

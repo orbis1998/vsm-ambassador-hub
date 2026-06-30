@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Loader2, MessageSquare, CheckCheck, MoreVertical } from "lucide-react";
+import { Search, Loader2, MessageSquare, CheckCheck, MoreVertical, ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useAmbassador } from "@/hooks/use-social";
@@ -40,6 +40,14 @@ function MessagesPage() {
   const [msgSearch, setMsgSearch] = useState("");
   const [openStoryId, setOpenStoryId] = useState<string | null>(null);
   const openedRef = useRef(false);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  const scrollMessagesToBottom = (behavior: ScrollBehavior = "auto") => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  };
 
   const { data: conversations = [], isLoading: loadingConversations } = useConversations();
   const { send, sendMedia, sendVoice, react, edit, deleteForAll, deleteForMe, openDirect, notifyTyping } = useMessagingMutations();
@@ -85,6 +93,26 @@ function MessagesPage() {
     return messages.filter((m) => m.body.toLowerCase().includes(q));
   }, [messages, msgSearch]);
 
+  useEffect(() => {
+    stickToBottomRef.current = true;
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!activeId || loadingMessages) return;
+    requestAnimationFrame(() => scrollMessagesToBottom());
+  }, [activeId, loadingMessages, visibleMessages.length]);
+
+  useEffect(() => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      stickToBottomRef.current = distanceFromBottom < 80;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [activeId]);
+
   const displayTitle = active?.title ?? otherUser?.name ?? "Conversation";
 
   const handleSend = async () => {
@@ -98,6 +126,8 @@ function MessagesPage() {
     });
     setDraft("");
     setReplyTo(null);
+    stickToBottomRef.current = true;
+    requestAnimationFrame(() => scrollMessagesToBottom());
     navigate({ search: { conv: activeId }, replace: true });
   };
 
@@ -110,7 +140,7 @@ function MessagesPage() {
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface md:mx-auto md:max-w-6xl md:rounded-2xl md:border md:border-border md:h-[calc(100vh-9rem)]">
+    <div className="relative flex h-[calc(100dvh-4rem)] min-h-0 w-full flex-col overflow-hidden bg-surface md:mx-auto md:h-[calc(100vh-9rem)] md:max-w-6xl md:rounded-2xl md:border md:border-border">
       {openStoryId && (
         <StoryViewerModal storyId={openStoryId} onClose={() => setOpenStoryId(null)} />
       )}
@@ -149,7 +179,7 @@ function MessagesPage() {
           </ul>
         </aside>
 
-        <section className={`flex min-h-0 flex-1 flex-col overflow-hidden ${!activeId ? "hidden md:flex" : "flex"}`}>
+        <section className={`flex h-full min-h-0 flex-1 flex-col overflow-hidden ${!activeId ? "hidden md:flex" : "flex"}`}>
           {!activeId ? (
             <div className="grid flex-1 place-items-center p-8 text-center text-sm text-muted-foreground">
               <MessageSquare className="mx-auto mb-3 h-10 w-10 text-vsm-red/50" />
@@ -158,8 +188,13 @@ function MessagesPage() {
           ) : (
             <>
               <header className="flex shrink-0 items-center gap-2 border-b border-[#d1d7db] bg-[#f0f2f5] px-3 py-2.5 dark:border-border dark:bg-surface md:px-4 md:py-3">
-                <button type="button" className="text-xs uppercase text-vsm-red md:hidden" onClick={() => { setActiveId(null); navigate({ search: {} }); }}>
-                  ←
+                <button
+                  type="button"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#00a884] md:hidden"
+                  onClick={() => { setActiveId(null); navigate({ search: {} }); }}
+                  aria-label="Retour aux conversations"
+                >
+                  <ChevronLeft className="h-7 w-7" strokeWidth={2.25} />
                 </button>
                 {otherId ? (
                   <Link to="/ambassadeur/$id" params={{ id: otherId }} className="flex min-w-0 flex-1 items-center gap-2">
@@ -193,9 +228,11 @@ function MessagesPage() {
               </header>
 
               <div
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#efeae2] p-2 dark:bg-background md:space-y-2 md:p-4"
+                ref={messagesScrollRef}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-[#efeae2] dark:bg-background"
                 style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4cdc4' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}
               >
+                <div className="flex min-h-full flex-col justify-end gap-1 p-2 md:gap-2 md:p-4">
                 {loadingMessages ? (
                   <div className="grid place-items-center py-12"><Loader2 className="h-6 w-6 animate-spin text-vsm-red" /></div>
                 ) : (
@@ -215,10 +252,10 @@ function MessagesPage() {
                     />
                   ))
                 )}
+                </div>
               </div>
 
-              <div className="shrink-0 border-t border-[#d1d7db] bg-[#f0f2f5] dark:border-border dark:bg-surface">
-                <MessageComposer
+              <MessageComposer
                 draft={draft}
                 onDraftChange={setDraft}
                 replyTo={replyTo}
@@ -228,8 +265,7 @@ function MessagesPage() {
                 onSendVoice={(b) => activeId && void sendVoice.mutateAsync({ conversationId: activeId, blob: b })}
                 sending={send.isPending}
                 onTyping={() => activeId && notifyTyping(activeId)}
-                />
-              </div>
+              />
             </>
           )}
         </section>
@@ -392,31 +428,23 @@ function ConversationListItem({
 
   return (
     <li>
-      <div className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
-        {otherId ? (
-          <Link to="/ambassadeur/$id" params={{ id: otherId }} className="shrink-0">
-            <img src={avatar} alt="" className="h-11 w-11 rounded-lg object-cover" />
-          </Link>
-        ) : (
-          <img src={avatar} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
-        )}
-        <button type="button" onClick={onSelect} className="min-w-0 flex-1 text-left">
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent ${isActive ? "bg-accent" : ""}`}
+      >
+        <img src={avatar} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+        <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            {otherId ? (
-              <Link to="/ambassadeur/$id" params={{ id: otherId }} onClick={(e) => e.stopPropagation()} className="truncate text-sm font-semibold hover:text-vsm-red">
-                {name}
-              </Link>
-            ) : (
-              <p className="truncate text-sm font-semibold">{name}</p>
-            )}
+            <p className="truncate text-sm font-semibold">{name}</p>
             <span className="shrink-0 text-[10px] text-muted-foreground">{formatRelativeTime(c.last_at)}</span>
           </div>
           <p className="truncate text-xs text-muted-foreground">{c.last_message || "—"}</p>
-        </button>
+        </div>
         {unread > 0 && (
           <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-vsm-red px-1 text-[10px] font-bold text-white">{unread}</span>
         )}
-      </div>
+      </button>
     </li>
   );
 }

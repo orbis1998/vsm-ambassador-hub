@@ -82,7 +82,7 @@ function AppLayout() {
         </div>
       )}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isMessagesRoute ? "h-dvh max-h-dvh overflow-hidden" : ""}`}>
         <Topbar onMenuClick={() => setMobileOpen(true)} />
         <main
           className={

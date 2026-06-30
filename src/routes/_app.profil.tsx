@@ -75,21 +75,30 @@ function ProfilePage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         <div className="group relative h-32 md:h-44">
-          {cover ? (
-            <img src={cover} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted/80 to-muted/40">
-              <Camera className="h-8 w-8 text-muted-foreground/60" />
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ajouter une couverture</p>
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           <button
             type="button"
             onClick={() => coverRef.current?.click()}
-            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
+            disabled={uploadCover.isPending}
+            className="relative block h-full w-full overflow-hidden text-left disabled:opacity-70"
+            aria-label="Changer la couverture"
           >
-            <Camera className="h-3 w-3" /> Appuyer pour changer
+            {cover ? (
+              <img src={cover} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted/80 to-muted/40">
+                <Camera className="h-8 w-8 text-muted-foreground/60" />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ajouter une couverture</p>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-lg bg-black/50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              {uploadCover.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
+              {cover ? "Modifier" : "Ajouter"}
+            </span>
           </button>
           <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setCropFile(f); setCropKind("cover"); } e.target.value = ""; }} />
         </div>
@@ -271,10 +280,14 @@ function ProfilePage() {
         title={cropKind === "cover" ? "Rogner la couverture" : "Rogner l'avatar"}
         onClose={() => { setCropFile(null); setCropKind(null); }}
         onConfirm={(file) => {
-          if (cropKind === "avatar") void uploadAvatar.mutateAsync(file);
-          if (cropKind === "cover") void uploadCover.mutateAsync(file);
+          const kind = cropKind;
           setCropFile(null);
           setCropKind(null);
+          if (kind === "avatar") {
+            void uploadAvatar.mutateAsync(file).catch(() => undefined);
+          } else if (kind === "cover") {
+            void uploadCover.mutateAsync(file).catch(() => undefined);
+          }
         }}
       />
     </div>

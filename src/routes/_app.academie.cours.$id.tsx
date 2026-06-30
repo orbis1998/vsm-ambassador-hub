@@ -130,21 +130,23 @@ function CoursePage() {
               <span>·</span>
               <span>{course.difficulty}</span>
               <span>·</span>
-              <span>{course.studentCount} ambassadeur{course.studentCount !== 1 ? "s" : ""}</span>
+              <span>{course.studentCount} inscrit{course.studentCount !== 1 ? "s" : ""}</span>
               <span>·</span>
               <span>
-                {course.ratingCount > 0 ? `★ ${course.rating.toFixed(1)} (${course.ratingCount} avis)` : "Pas encore noté"}
+                {course.ratingCount > 0 ? `★ ${(course.rating ?? 0).toFixed(1)} (${course.ratingCount} avis)` : "Pas encore noté"}
               </span>
             </div>
           </header>
 
           <CourseRating
-            avgRating={course.rating}
-            reviewCount={course.ratingCount}
+            avgRating={course.rating ?? 0}
+            reviewCount={course.ratingCount ?? 0}
             myRating={course.myRating ?? null}
             disabled={!profile?.userId}
             onRate={(stars) => {
-              void rateCourse({ courseId: course.id, stars }).then(() => toast.success("Note enregistrée"));
+              void rateCourse({ courseId: course.id, stars })
+                .then(() => toast.success("Note enregistrée"))
+                .catch(() => toast.error("Impossible d'enregistrer la note"));
             }}
           />
 
