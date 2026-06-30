@@ -37,9 +37,15 @@ export default defineConfig({
           categories: ["education", "social"],
           icons: [
             {
-              src: "/icons/image_1782650717547.jpeg",
+              src: "/icons/file_000000007df071f490e699e36cce0d66.png",
               sizes: "512x512",
-              type: "image/jpeg",
+              type: "image/png",
+              purpose: "any",
+            },
+            {
+              src: "/icons/file_000000007df071f490e699e36cce0d66.png",
+              sizes: "192x192",
+              type: "image/png",
               purpose: "any",
             },
             {
@@ -55,6 +61,7 @@ export default defineConfig({
               purpose: "any",
             },
           ],
+          prefer_related_applications: false,
         },
         workbox: {
           importScripts: ["/push-sw.js"],

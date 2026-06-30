@@ -9,15 +9,18 @@ import {
   diagnosePushSetup,
   pushSetupErrorMessage,
 } from "@/lib/notifications/push-manager";
+import {
+  getDeferredInstallPrompt,
+  isAndroid,
+  isIosDevice,
+  runInstallPrompt,
+  subscribeInstallPrompt,
+  supportsNativeInstallPrompt,
+} from "@/lib/pwa/deferred-install";
 import { toast } from "sonner";
 
 const INSTALL_DISMISSED_KEY = "vsm.academy.pwa.install.dismissed";
 const PUSH_PROMPT_DONE_KEY = "vsm.academy.pwa.push.prompted";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
 
 function isStandalonePwa() {
   return (
@@ -26,13 +29,9 @@ function isStandalonePwa() {
   );
 }
 
-function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-
 export function PwaInstallPrompt() {
   const { profile, session } = useAuth();
-  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [nativeInstallReady, setNativeInstallReady] = useState(() => supportsNativeInstallPrompt());
   const [showInstall, setShowInstall] = useState(false);
   const [showPush, setShowPush] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,16 +39,30 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     if (!session) return;
 
-    // Déjà installé en PWA : proposer les notifications au premier lancement
     if (
       isStandalonePwa() &&
       isPushSupported() &&
       Notification.permission === "default" &&
       localStorage.getItem(PUSH_PROMPT_DONE_KEY) !== "1"
     ) {
-      const timer = window.setTimeout(() => setShowPush(true), 1500);
-      return () => window.clearTimeout(timer);
+      const pushTimer = window.setTimeout(() => setShowPush(true), 1500);
+      return () => window.clearTimeout(pushTimer);
     }
+  }, [session]);
+
+  useEffect(() => {
+    return subscribeInstallPrompt((prompt) => {
+      const ready = prompt !== null;
+      setNativeInstallReady(ready);
+      if (
+        ready &&
+        session &&
+        !isStandalonePwa() &&
+        localStorage.getItem(INSTALL_DISMISSED_KEY) !== "1"
+      ) {
+        window.setTimeout(() => setShowInstall(true), 800);
+      }
+    });
   }, [session]);
 
   useEffect(() => {
@@ -57,26 +70,18 @@ export function PwaInstallPrompt() {
     if (isStandalonePwa()) return;
     if (localStorage.getItem(INSTALL_DISMISSED_KEY) === "1") return;
 
-    const onBip = (e: Event) => {
-      e.preventDefault();
-      setInstallEvent(e as BeforeInstallPromptEvent);
-      setShowInstall(true);
-    };
+    // iOS : pas de prompt natif — instructions manuelles uniquement
+    if (isIosDevice()) {
+      const timer = window.setTimeout(() => setShowInstall(true), 2500);
+      return () => window.clearTimeout(timer);
+    }
 
-    window.addEventListener("beforeinstallprompt", onBip);
-
-    // Première visite : proposer l'installation (iOS ou navigateur sans événement différé)
-    const timer = window.setTimeout(() => {
-      if (!isStandalonePwa() && localStorage.getItem(INSTALL_DISMISSED_KEY) !== "1") {
-        setShowInstall(true);
-      }
-    }, 2500);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBip);
-      window.clearTimeout(timer);
-    };
-  }, [session]);
+    // Android / Chrome : popup uniquement quand beforeinstallprompt est capturé
+    if (getDeferredInstallPrompt()) {
+      const timer = window.setTimeout(() => setShowInstall(true), 800);
+      return () => window.clearTimeout(timer);
+    }
+  }, [session, nativeInstallReady]);
 
   useEffect(() => {
     const onInstalled = () => {
@@ -96,25 +101,30 @@ export function PwaInstallPrompt() {
   };
 
   const handleInstall = async () => {
-    if (installEvent) {
-      setBusy(true);
-      try {
-        await installEvent.prompt();
-        const { outcome } = await installEvent.userChoice;
-        if (outcome === "accepted") {
-          toast.success("Application installée");
-          dismissInstall();
-        }
-      } finally {
-        setBusy(false);
+    if (isIosDevice() && !nativeInstallReady) {
+      dismissInstall();
+      return;
+    }
+
+    if (!nativeInstallReady) {
+      toast.error("Installation en cours de préparation. Rechargez la page dans Chrome.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const outcome = await runInstallPrompt();
+      if (outcome === "accepted") {
+        toast.success("Application installée");
+        dismissInstall();
+      } else if (outcome === "dismissed") {
+        /* l'utilisateur a annulé le dialogue système */
+      } else {
+        toast.error("Installation indisponible. Utilisez Chrome sur academy.vsmcollection.com.");
       }
-      return;
+    } finally {
+      setBusy(false);
     }
-    if (isIos()) {
-      toast.info("Safari → Partager → « Sur l'écran d'accueil »");
-      return;
-    }
-    toast.info("Menu du navigateur (⋮) → Installer l'application ou Ajouter à l'écran d'accueil");
   };
 
   const handleEnablePush = async () => {
@@ -185,6 +195,12 @@ export function PwaInstallPrompt() {
 
   if (!showInstall || isStandalonePwa()) return null;
 
+  const iosManual = isIosDevice() && !nativeInstallReady;
+  const androidWaiting = isAndroid() && !nativeInstallReady;
+
+  // Android : n'afficher que lorsque le prompt natif Chrome est prêt
+  if (androidWaiting) return null;
+
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-xl">
@@ -203,9 +219,11 @@ export function PwaInstallPrompt() {
           </button>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Téléchargez VSM Academy sur votre écran d&apos;accueil pour une expérience plein écran, plus rapide et des notifications fiables.
+          {iosManual
+            ? "Ajoutez VSM Academy sur votre écran d'accueil pour une expérience plein écran et des notifications fiables."
+            : "Installez VSM Academy sur votre téléphone en un clic — comme une application native, sans passer par le Play Store."}
         </p>
-        {isIos() && !installEvent && (
+        {iosManual && (
           <p className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
             <Smartphone className="mt-0.5 h-4 w-4 shrink-0" />
             Safari → Partager → « Sur l&apos;écran d&apos;accueil »
@@ -217,11 +235,11 @@ export function PwaInstallPrompt() {
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || (!iosManual && !nativeInstallReady)}
             onClick={() => void handleInstall()}
             className="flex-1 rounded-lg bg-vsm-red py-2.5 text-xs font-semibold uppercase text-white disabled:opacity-50"
           >
-            Installer
+            {iosManual ? "Compris" : busy ? "Installation…" : "Installer"}
           </button>
         </div>
       </div>
