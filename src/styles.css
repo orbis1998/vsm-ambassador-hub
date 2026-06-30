@@ -221,6 +221,16 @@
 @media (max-width: 1023px) {
   .academy-page {
     isolation: isolate;
+  }
+
+  .academy-filters {
+    touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
+  }
+
+  html:has(.academy-page),
+  body:has(.academy-page) {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 }

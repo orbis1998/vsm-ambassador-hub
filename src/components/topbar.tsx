@@ -102,7 +102,7 @@ export function Topbar({ onMenuClick }: Props) {
   );
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background px-4 md:px-6 lg:bg-background/80 lg:backdrop-blur-xl">
       <button
         onClick={onMenuClick}
         className="grid h-10 w-10 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"

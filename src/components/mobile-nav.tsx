@@ -13,7 +13,7 @@ export function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] lg:hidden lg:bg-background/95 lg:backdrop-blur-lg">
       <ul className="flex items-stretch justify-around">
         {items.map((item) => {
           const Icon = item.icon;

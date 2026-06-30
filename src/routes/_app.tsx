@@ -55,7 +55,7 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-dvh w-full overflow-x-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <AppSidebar />
@@ -81,14 +81,14 @@ function AppLayout() {
         </div>
       )}
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isMessagesRoute ? "h-dvh max-h-dvh overflow-hidden" : ""}`}>
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isMessagesRoute ? "h-dvh max-h-dvh overflow-hidden" : "min-h-dvh"}`}>
         <Topbar onMenuClick={() => setMobileOpen(true)} />
         <main
           className={
             isMessagesRoute
               ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0 md:px-6 md:py-8 md:pb-8"
               : isAcademyRoute
-                ? "min-w-0 flex-1 touch-pan-y overflow-x-hidden overscroll-x-none px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
+                ? "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
                 : "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
           }
         >
