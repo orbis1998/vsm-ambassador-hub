@@ -35,7 +35,7 @@ function ParcoursPage() {
   const pct = p.courses.length ? Math.round((done / p.courses.length) * 100) : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto min-w-0 max-w-full space-y-6 overflow-x-hidden sm:space-y-8">
       <Link to="/academie" className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Académie
       </Link>
@@ -50,7 +50,7 @@ function ParcoursPage() {
             <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
               Parcours {p.number.toString().padStart(2, "0")} · {p.difficulty}
             </p>
-            <h1 className="font-display text-3xl font-bold uppercase tracking-wide md:text-5xl">{p.title}</h1>
+            <h1 className="break-words font-display text-2xl font-bold uppercase tracking-wide sm:text-3xl md:text-5xl">{p.title}</h1>
             <p className="mt-2 text-base text-muted-foreground">{p.tagline}</p>
             <p className="mt-4 max-w-2xl text-sm text-muted-foreground">{p.description}</p>
             <div className="mt-5 flex flex-wrap gap-2">
@@ -101,16 +101,16 @@ function ParcoursPage() {
                 <Link
                   to="/academie/cours/$id"
                   params={{ id: c.id }}
-                  className={`group grid grid-cols-[auto_auto_1fr_auto] items-center gap-4 rounded-xl border border-border bg-surface p-4 transition-all hover:border-vsm-red/50 hover:bg-surface-elevated ${
+                  className={`group flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-all sm:gap-4 sm:p-4 md:hover:border-vsm-red/50 md:hover:bg-surface-elevated ${
                     locked ? "opacity-60" : ""
                   }`}
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-background font-display text-sm font-bold text-muted-foreground">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-background font-display text-sm font-bold text-muted-foreground sm:h-10 sm:w-10">
                     {(i + 1).toString().padStart(2, "0")}
                   </span>
-                  <img src={c.cover} alt="" className="hidden h-12 w-20 rounded-md object-cover sm:block" />
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{c.title}</p>
+                  <img src={c.cover} alt="" className="hidden h-12 w-20 shrink-0 rounded-md object-cover sm:block" />
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-sm font-semibold sm:truncate">{c.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {c.lessonCount} leçons · {c.duration}
                     </p>

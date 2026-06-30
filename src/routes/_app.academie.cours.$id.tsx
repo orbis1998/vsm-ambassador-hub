@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -34,6 +34,7 @@ type Tab = "overview" | "lessons" | "downloads" | "quiz" | "mission" | "notes" |
 
 function CoursePage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { data: ctx, isLoading, isError } = useCourseWithParcours(id);
   const { state, toggleFavorite, logHistory, setProgress, setNote, toggleLesson, saveQuizScore } = useAcademyStore();
@@ -85,14 +86,15 @@ function CoursePage() {
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto min-w-0 max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <Link
           to="/academie/parcours/$id"
           params={{ id: parcours.id }}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          className="inline-flex max-w-full items-center gap-1.5 truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> {parcours.title}
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{parcours.title}</span>
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -108,23 +110,26 @@ function CoursePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        {/* Main column */}
-        <div className="space-y-6">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
           <VideoPlayer
             src={course.videoUrl}
             poster={course.videoPoster}
             durationSec={course.lessons.find((l) => l.videoUrl)?.videoUrl ? undefined : 300}
             onComplete={handleVideoComplete}
             nextLabel={next?.title}
-            onNext={next ? () => (window.location.href = `/academie/cours/${next.id}`) : undefined}
+            onNext={
+              next
+                ? () => navigate({ to: "/academie/cours/$id", params: { id: next.id } })
+                : undefined
+            }
           />
 
-          <header>
-            <p className="text-xs uppercase tracking-[0.2em] text-vsm-red">
+          <header className="min-w-0">
+            <p className="truncate text-xs uppercase tracking-[0.2em] text-vsm-red">
               {parcours.title} · Module {idx + 1}/{parcours.courses.length}
             </p>
-            <h1 className="mt-1 font-display text-2xl font-bold uppercase tracking-wide md:text-3xl">{course.title}</h1>
+            <h1 className="mt-1 break-words font-display text-xl font-bold uppercase tracking-wide sm:text-2xl md:text-3xl">{course.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{course.duration}</span>
               <span>·</span>
@@ -151,7 +156,7 @@ function CoursePage() {
           />
 
           {/* Tabs */}
-          <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <nav className="flex gap-1 overflow-x-auto overscroll-x-contain border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               ["overview", "Aperçu", BookOpen],
               ["lessons", "Leçons", ListChecks],
@@ -163,8 +168,9 @@ function CoursePage() {
             ] as const).map(([key, label, Icon]) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setTab(key)}
-                className={`relative -mb-px inline-flex shrink-0 items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${
+                className={`relative -mb-px inline-flex shrink-0 items-center gap-1.5 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider transition sm:gap-2 sm:px-3 sm:text-xs ${
                   tab === key
                     ? "text-vsm-red"
                     : "text-muted-foreground hover:text-foreground"
@@ -308,8 +314,7 @@ function CoursePage() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
           <div className="rounded-2xl border border-border bg-surface p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression du cours</p>
             <p className="mt-1 font-display text-3xl font-bold">{progress}%</p>

@@ -78,7 +78,7 @@ function AcademieHub() {
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-8 overflow-x-hidden">
+    <div className="mx-auto min-w-0 max-w-full space-y-6 overflow-x-hidden sm:space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
@@ -108,9 +108,9 @@ function AcademieHub() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-6">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-vsm-red/15 blur-3xl" />
-        <div className="relative grid min-w-0 gap-4 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-4 sm:p-6">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-vsm-red/15 blur-3xl sm:-right-20 sm:-top-20 sm:h-64 sm:w-64" />
+        <div className="relative grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression générale</p>
             <div className="mt-2 flex items-end gap-3">
@@ -142,7 +142,7 @@ function AcademieHub() {
             className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-base placeholder:text-muted-foreground focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red md:text-sm"
           />
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           {DIFFS.map((d) => (
             <button
@@ -188,13 +188,13 @@ function AcademieHub() {
                   key={p.id}
                   to="/academie/parcours/$id"
                   params={{ id: p.id }}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:border-vsm-red/50 hover:shadow-glow-red"
+                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all md:hover:-translate-y-0.5 md:hover:border-vsm-red/50 md:hover:shadow-glow-red"
                 >
                   <div className="relative aspect-[16/9] overflow-hidden">
                     <img
                       src={p.cover}
                       alt={p.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-500 md:group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
                     <span className="absolute left-3 top-3 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur">
@@ -334,10 +334,10 @@ function CourseCard({
     <Link
       to="/academie/cours/$id"
       params={{ id }}
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:border-vsm-red/40"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-all md:hover:-translate-y-0.5 md:hover:border-vsm-red/40"
     >
       <div className="relative aspect-[16/9] overflow-hidden">
-        <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <img src={cover} alt="" className="h-full w-full object-cover md:transition-transform md:duration-500 md:group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent" />
         <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold backdrop-blur">
           <Clock className="h-3 w-3" /> {duration}

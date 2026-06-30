@@ -86,7 +86,7 @@ function AppLayout() {
           className={
             isMessagesRoute
               ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0 md:px-6 md:py-8 md:pb-8"
-              : "flex-1 px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
+              : "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
           }
         >
           <Outlet />
