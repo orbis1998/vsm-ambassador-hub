@@ -39,12 +39,20 @@ function AmbassadorPage() {
         <ArrowLeft className="h-3 w-3" /> Communauté
       </Link>
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-        <div className="relative h-40">
-          <img src={ambassador.cover || "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1400&q=70"} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="relative h-36 sm:h-40">
+          {ambassador.cover ? (
+            <img src={ambassador.cover} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-muted/80 to-muted/40" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
         </div>
-        <div className="px-5 pb-5">
-          <img src={ambassador.avatar || profileAvatarUrl(null, ambassador.name)} alt="" className="-mt-10 h-20 w-20 rounded-2xl border-4 border-surface bg-background object-cover" />
+        <div className="relative px-5 pb-5">
+          <img
+            src={ambassador.avatar || profileAvatarUrl(null, ambassador.name)}
+            alt=""
+            className="relative z-10 -mt-10 h-20 w-20 rounded-2xl border-4 border-surface bg-background object-cover shadow-md"
+          />
           <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] text-vsm-red">{ambassador.badge}</p>

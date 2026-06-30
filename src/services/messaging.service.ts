@@ -245,6 +245,32 @@ export async function sendMessage(
     })
     .eq("id", conversationId);
 
+  const { data: conv } = await db
+    .from("academy_conversations")
+    .select("participant_ids")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  const recipients = ((conv as { participant_ids?: string[] } | null)?.participant_ids ?? []).filter(
+    (id) => id !== userId,
+  );
+
+  if (recipients.length) {
+    const { notifyUser } = await import("@/services/notifications.service");
+    await Promise.all(
+      recipients.map((recipientId) =>
+        notifyUser({
+          userId: recipientId,
+          type: "message",
+          title: "Nouveau message",
+          body: preview,
+          link: `/messages?conv=${conversationId}`,
+          actorId: userId,
+        }).catch(() => undefined),
+      ),
+    );
+  }
+
   return mapMessage(data as Record<string, unknown>);
 }
 

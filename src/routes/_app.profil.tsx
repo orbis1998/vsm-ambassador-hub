@@ -1,23 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { MapPin, Award, Loader2, Mail, Phone, Camera, Pencil, Users } from "lucide-react";
+import { MapPin, Award, Loader2, Mail, Phone, Camera, Pencil, Users, Bookmark, BookOpen } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { profileAvatarUrl } from "@/lib/program-tier";
-import { useAuthorPosts, useFollowStats } from "@/hooks/use-social";
+import { useAuthorPosts, useFollowStats, useSavedPosts } from "@/hooks/use-social";
 import { useCertificates } from "@/hooks/use-certificates";
 import { useUserBadges } from "@/hooks/use-gamification";
 import { PostCard } from "@/components/post-card";
 import { useProfileEdit } from "@/hooks/use-profile-edit";
 import { ImageCropDialog } from "@/components/image-crop-dialog";
+import { useAcademyProgress, useCourseSummaries } from "@/hooks/use-academy";
 
 export const Route = createFileRoute("/_app/profil")({
   component: ProfilePage,
 });
 
-type Tab = "posts" | "certificats" | "badges" | "activite";
+type Tab = "posts" | "favoris" | "certificats" | "badges" | "activite";
 
-const DEFAULT_COVER =
-  "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1400&q=70&auto=format&fit=crop";
+const DEFAULT_COVER = null;
 
 function ProfilePage() {
   const { profile, loading } = useAuth();
@@ -26,6 +26,12 @@ function ProfilePage() {
   const [bio, setBio] = useState("");
   const [country, setCountry] = useState("");
   const { data: posts = [] } = useAuthorPosts(profile?.userId);
+  const { data: savedPosts = [] } = useSavedPosts(profile?.userId);
+  const { data: academyProgress } = useAcademyProgress();
+  const { data: allCourses = [] } = useCourseSummaries();
+  const favCourses = (academyProgress?.favorites ?? [])
+    .map((id) => allCourses.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
   const { data: certs = [] } = useCertificates();
   const { data: badges = [] } = useUserBadges();
   const { update, uploadAvatar, uploadCover } = useProfileEdit();
@@ -69,8 +75,15 @@ function ProfilePage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         <div className="group relative h-32 md:h-44">
-          <img src={cover} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          {cover ? (
+            <img src={cover} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted/80 to-muted/40">
+              <Camera className="h-8 w-8 text-muted-foreground/60" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ajouter une couverture</p>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           <button
             type="button"
             onClick={() => coverRef.current?.click()}
@@ -81,8 +94,8 @@ function ProfilePage() {
           <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setCropFile(f); setCropKind("cover"); } e.target.value = ""; }} />
         </div>
         <div className="relative px-6 pb-6">
-          <div className="group relative -mt-12 inline-block">
-            <img src={avatar} alt="" className="h-24 w-24 rounded-2xl border-4 border-surface bg-background object-cover" />
+          <div className="group relative z-10 -mt-12 inline-block">
+            <img src={avatar} alt="" className="relative z-10 h-24 w-24 rounded-2xl border-4 border-surface bg-background object-cover shadow-md" />
             <button
               type="button"
               onClick={() => avatarRef.current?.click()}
@@ -154,9 +167,9 @@ function ProfilePage() {
       </div>
 
       <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1 text-xs">
-        {(["posts", "certificats", "badges", "activite"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg px-3 py-2 font-semibold uppercase tracking-wider ${tab === t ? "bg-vsm-red text-white shadow-glow-red" : "text-muted-foreground hover:text-foreground"}`}>
-            {t}
+        {(["posts", "favoris", "certificats", "badges", "activite"] as Tab[]).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg px-2 py-2 text-[10px] font-semibold uppercase tracking-wider sm:px-3 sm:text-xs ${tab === t ? "bg-vsm-red text-white shadow-glow-red" : "text-muted-foreground hover:text-foreground"}`}>
+            {t === "favoris" ? "Favoris" : t}
           </button>
         ))}
       </div>
@@ -169,6 +182,45 @@ function ProfilePage() {
         ) : (
           <div className="space-y-4">{posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
         )
+      )}
+
+      {tab === "favoris" && (
+        <div className="space-y-6">
+          <section>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
+              <Bookmark className="h-4 w-4 text-vsm-red" /> Publications ({savedPosts.length})
+            </h2>
+            {savedPosts.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border bg-surface p-6 text-center text-sm text-muted-foreground">
+                Aucune publication sauvegardée. <Link to="/communaute" className="text-vsm-red hover:underline">Explorer la communauté</Link>
+              </p>
+            ) : (
+              <div className="space-y-4">{savedPosts.map((p) => <PostCard key={p.id} post={p} />)}</div>
+            )}
+          </section>
+          <section>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
+              <BookOpen className="h-4 w-4 text-vsm-red" /> Cours ({favCourses.length})
+            </h2>
+            {favCourses.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border bg-surface p-6 text-center text-sm text-muted-foreground">
+                Aucun cours favori. <Link to="/academie" className="text-vsm-red hover:underline">Explorer l&apos;Académie</Link>
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {favCourses.map((c) => (
+                  <Link key={c.id} to="/academie/cours/$id" params={{ id: c.id }} className="flex gap-3 rounded-xl border border-border bg-surface p-3 transition hover:border-vsm-red/50">
+                    <img src={c.cover} alt="" className="h-16 w-24 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{c.title}</p>
+                      <p className="text-xs text-muted-foreground">{c.duration} · {c.difficulty}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       )}
 
       {tab === "certificats" && (

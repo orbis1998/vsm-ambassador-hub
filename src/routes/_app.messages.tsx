@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Phone, Search, Loader2, MessageSquare, CheckCheck, MoreVertical } from "lucide-react";
+import { Search, Loader2, MessageSquare, CheckCheck, MoreVertical } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import { useAmbassador } from "@/hooks/use-social";
@@ -10,9 +10,8 @@ import {
   useMessagingMutations,
   usePeerLastSeen,
 } from "@/hooks/use-messaging";
-import { useAudioCall } from "@/hooks/use-audio-call";
 import { MessageComposer } from "@/components/message-composer";
-import { AudioCallOverlay } from "@/components/audio-call-overlay";
+import { StoryViewerModal } from "@/components/story-viewer-modal";
 import { formatRelativeTime } from "@/services/ambassador.service";
 import { fetchStoryById } from "@/services/social.service";
 import { profileAvatarUrl } from "@/lib/program-tier";
@@ -38,7 +37,7 @@ function MessagesPage() {
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [msgSearch, setMsgSearch] = useState("");
-  const [callMinimized, setCallMinimized] = useState(false);
+  const [openStoryId, setOpenStoryId] = useState<string | null>(null);
   const openedRef = useRef(false);
 
   const { data: conversations = [], isLoading: loadingConversations } = useConversations();
@@ -49,7 +48,6 @@ function MessagesPage() {
   const otherId = active?.participant_ids.find((id) => id !== profile?.userId) ?? withUserId;
   const { data: otherUser } = useAmbassador(otherId);
   const { data: lastSeen } = usePeerLastSeen(otherId);
-  const call = useAudioCall(activeId ?? undefined, profile?.userId, otherId);
 
   useEffect(() => {
     if (convParam) setActiveId(convParam);
@@ -70,11 +68,7 @@ function MessagesPage() {
       setActiveId(convId);
       navigate({ search: { conv: convId, story: storyParam }, replace: true });
     });
-  }, [withUserId, profile?.userId, conversations, storyParam]);
-
-  useEffect(() => {
-    if (call.state === "active" || call.state === "connecting") setCallMinimized(false);
-  }, [call.state]);
+  }, [withUserId, profile?.userId, conversations, storyParam, navigate, openDirect]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return conversations;
@@ -116,20 +110,9 @@ function MessagesPage() {
 
   return (
     <div className="relative mx-auto h-[calc(100dvh-7rem)] max-w-6xl overflow-hidden rounded-2xl border border-border bg-surface md:h-[calc(100vh-9rem)]">
-      <audio ref={call.remoteAudioRef} autoPlay playsInline className="hidden" />
-      <AudioCallOverlay
-        state={call.state}
-        peerName={displayTitle}
-        peerAvatar={otherUser?.avatar}
-        minimized={callMinimized}
-        speakerOn={call.speakerOn}
-        muted={call.muted}
-        onAccept={() => void call.acceptCall()}
-        onHangUp={() => void call.hangUp()}
-        onToggleSpeaker={call.toggleSpeaker}
-        onToggleMute={call.toggleMute}
-        onMinimize={() => setCallMinimized(true)}
-      />
+      {openStoryId && (
+        <StoryViewerModal storyId={openStoryId} onClose={() => setOpenStoryId(null)} />
+      )}
       <div className="grid h-full grid-cols-1 md:grid-cols-[320px_1fr]">
         <aside className={`flex flex-col border-r border-border ${activeId ? "hidden md:flex" : "flex"}`}>
           <div className="border-b border-border p-4">
@@ -173,7 +156,7 @@ function MessagesPage() {
             </div>
           ) : (
             <>
-              <header className="flex items-center gap-2 border-b border-border px-3 py-2.5 md:px-4 md:py-3">
+              <header className="flex items-center gap-2 border-b border-[#d1d7db] bg-[#f0f2f5] px-3 py-2.5 dark:border-border dark:bg-surface md:px-4 md:py-3">
                 <button type="button" className="text-xs uppercase text-vsm-red md:hidden" onClick={() => { setActiveId(null); navigate({ search: {} }); }}>
                   ←
                 </button>
@@ -184,23 +167,17 @@ function MessagesPage() {
                     {typingUser ? "écrit…" : lastSeen ? `vu ${formatRelativeTime(lastSeen)}` : otherUser?.level ?? ""}
                   </p>
                 </div>
-                {otherId && !active?.is_group && (
-                  <button type="button" onClick={() => void call.startCall()} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-vsm-red hover:bg-accent" aria-label="Appel audio">
-                    <Phone className="h-4 w-4" />
-                  </button>
-                )}
+                <div className="hidden w-40 sm:block">
+                  <input
+                    value={msgSearch}
+                    onChange={(e) => setMsgSearch(e.target.value)}
+                    placeholder="Rechercher…"
+                    className="h-8 w-full rounded-lg border border-border bg-background px-2 text-xs outline-none"
+                  />
+                </div>
               </header>
 
-              <div className="border-b border-border px-3 py-2">
-                <input
-                  value={msgSearch}
-                  onChange={(e) => setMsgSearch(e.target.value)}
-                  placeholder="Rechercher dans la conversation…"
-                  className="h-8 w-full rounded-lg border border-border bg-background px-3 text-xs outline-none"
-                />
-              </div>
-
-              <div className="flex-1 space-y-2 overflow-y-auto p-3 md:p-4">
+              <div className="flex-1 space-y-1 overflow-y-auto bg-[#efeae2] p-2 dark:bg-background md:space-y-2 md:p-4" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4cdc4' fill-opacity='0.25'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
                 {loadingMessages ? (
                   <div className="grid place-items-center py-12"><Loader2 className="h-6 w-6 animate-spin text-vsm-red" /></div>
                 ) : (
@@ -216,6 +193,7 @@ function MessagesPage() {
                       onEdit={(body) => edit.mutate({ messageId: m.id, body, conversationId: activeId! })}
                       onDeleteForAll={() => deleteForAll.mutate({ messageId: m.id, conversationId: activeId! })}
                       onDeleteForMe={() => deleteForMe.mutate({ messageId: m.id, conversationId: activeId! })}
+                      onOpenStory={(id) => setOpenStoryId(id)}
                     />
                   ))
                 )}
@@ -249,6 +227,7 @@ function MessageBubble({
   onEdit,
   onDeleteForAll,
   onDeleteForMe,
+  onOpenStory,
 }: {
   message: Message;
   isMine?: boolean;
@@ -259,10 +238,12 @@ function MessageBubble({
   onEdit: (body: string) => void;
   onDeleteForAll: () => void;
   onDeleteForMe: () => void;
+  onOpenStory: (storyId: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(m.body);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: story } = useQuery({
     queryKey: ["story-reply", m.story_id],
     queryFn: () => fetchStoryById(m.story_id!),
@@ -272,18 +253,39 @@ function MessageBubble({
   const read = isMine && (m.read_by?.length ?? 0) > 1;
   const deleted = m.deleted_for_all;
 
+  const openMenu = () => setMenuOpen(true);
+
   return (
     <div className={`group flex ${isMine ? "justify-end" : "justify-start"}`}>
-      <div className={`relative max-w-[85%] rounded-2xl px-3 py-2 text-sm ${isMine ? "bg-vsm-red text-white" : "border border-border bg-background"}`}>
+      <div
+        className={`relative max-w-[88%] rounded-lg px-3 py-2 text-sm shadow-sm sm:max-w-[85%] sm:rounded-2xl ${
+          isMine
+            ? "rounded-br-none bg-[#d9fdd3] text-[#111b21] dark:bg-vsm-red dark:text-white"
+            : "rounded-bl-none border border-[#d1d7db] bg-white text-[#111b21] dark:border-border dark:bg-background dark:text-foreground"
+        }`}
+        onContextMenu={(e) => { e.preventDefault(); openMenu(); }}
+        onTouchStart={() => {
+          longPressRef.current = setTimeout(openMenu, 500);
+        }}
+        onTouchEnd={() => {
+          if (longPressRef.current) clearTimeout(longPressRef.current);
+        }}
+      >
         {m.story_id && story && (
-          <div className={`mb-2 overflow-hidden rounded-lg border ${isMine ? "border-white/30" : "border-border"}`}>
+          <button
+            type="button"
+            onClick={() => onOpenStory(m.story_id!)}
+            className={`mb-2 block w-full overflow-hidden rounded-lg border text-left ${isMine ? "border-[#25d366]/30" : "border-border"}`}
+          >
             {story.media_url.match(/\.(mp4|webm|mov)/i) ? (
-              <video src={story.media_url} className="max-h-32 w-full object-cover" muted />
+              <video src={story.media_url} className="max-h-36 w-full bg-black object-contain" muted />
             ) : (
-              <img src={story.media_url} alt="" className="max-h-32 w-full object-cover" />
+              <img src={story.media_url} alt="" className="max-h-36 w-full bg-black object-contain" />
             )}
-            <p className={`px-2 py-1 text-[10px] uppercase tracking-wider ${isMine ? "text-white/80" : "text-muted-foreground"}`}>Réponse à une story</p>
-          </div>
+            <p className={`px-2 py-1 text-[10px] uppercase tracking-wider ${isMine ? "text-[#667781]" : "text-muted-foreground"}`}>
+              Story · toucher pour ouvrir
+            </p>
+          </button>
         )}
         {deleted ? (
           <p className="italic opacity-70">Ce message a été supprimé</p>
@@ -308,31 +310,31 @@ function MessageBubble({
             {(m.type === "text" || (m.body && !deleted)) && m.type !== "doc" && <p>{m.body}</p>}
           </>
         )}
-        <div className={`mt-1 flex flex-wrap items-center gap-2 text-[10px] ${isMine ? "text-white/70" : "text-muted-foreground"}`}>
+        <div className={`mt-1 flex flex-wrap items-center gap-2 text-[10px] ${isMine ? "text-[#667781] dark:text-white/70" : "text-muted-foreground"}`}>
           <span>{formatRelativeTime(m.created_at)}{m.edited_at ? " · modifié" : ""}</span>
-          {isMine && read && <CheckCheck className="h-3 w-3" />}
-          {!deleted && (
-            <>
-              <button type="button" onClick={onReply} className="hover:underline">Répondre</button>
-              {["👍", "❤️", "😂"].map((e) => (
-                <button key={e} type="button" onClick={() => onReact(e, rx.includes(e))} className="hover:scale-110">{e}</button>
-              ))}
-            </>
-          )}
+          {isMine && read && <CheckCheck className="h-3 w-3 text-[#53bdeb]" />}
         </div>
         {rx.length > 0 && <p className="mt-1 text-xs">{rx.join("")}</p>}
-        <button type="button" onClick={() => setMenuOpen((v) => !v)} className={`absolute -right-1 top-1 grid h-6 w-6 place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100 ${isMine ? "text-white/80" : "text-muted-foreground"}`}>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className={`absolute -right-1 top-1 grid h-7 w-7 place-items-center rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isMine ? "text-[#667781] dark:text-white/80" : "text-muted-foreground"}`}
+          aria-label="Options"
+        >
           <MoreVertical className="h-3.5 w-3.5" />
         </button>
         {menuOpen && (
-          <div className={`absolute z-10 min-w-[160px] rounded-lg border py-1 text-xs shadow-lg ${isMine ? "right-0 top-6 border-white/20 bg-vsm-red" : "left-0 top-6 border-border bg-popover text-foreground"}`}>
+          <div className={`absolute z-20 min-w-[180px] rounded-lg border py-1 text-xs shadow-lg ${isMine ? "right-0 top-7 border-border bg-white text-foreground dark:bg-popover" : "left-0 top-7 border-border bg-popover text-foreground"}`}>
+            {!deleted && (
+              <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onReply(); setMenuOpen(false); }}>Répondre</button>
+            )}
             {isMine && m.type === "text" && !deleted && (
-              <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { setEditing(true); setMenuOpen(false); }}>Modifier</button>
+              <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { setEditing(true); setMenuOpen(false); }}>Modifier</button>
             )}
             {isMine && !deleted && (
-              <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { onDeleteForAll(); setMenuOpen(false); }}>Supprimer pour tous</button>
+              <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onDeleteForAll(); setMenuOpen(false); }}>Supprimer pour tous</button>
             )}
-            <button type="button" className="block w-full px-3 py-2 text-left hover:bg-black/10" onClick={() => { onDeleteForMe(); setMenuOpen(false); }}>Supprimer pour moi</button>
+            <button type="button" className="block w-full px-3 py-2.5 text-left hover:bg-accent" onClick={() => { onDeleteForMe(); setMenuOpen(false); }}>Supprimer pour moi</button>
           </div>
         )}
       </div>

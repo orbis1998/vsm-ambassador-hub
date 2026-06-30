@@ -95,7 +95,7 @@ export async function adminUpsertCourse(input: Partial<AdminCourseRow> & { title
         type: "course",
         title: "Nouvelle formation",
         body: row.title,
-        link: `/academy/cours/${row.slug}`,
+        link: `/academie/cours/${row.id}`,
       }).catch(() => undefined);
     }
     return row;
@@ -109,7 +109,7 @@ export async function adminUpsertCourse(input: Partial<AdminCourseRow> & { title
       type: "course",
       title: "Nouvelle formation",
       body: row.title,
-      link: `/academy/cours/${row.slug}`,
+      link: `/academie/cours/${row.id}`,
     }).catch(() => undefined);
   }
   return row;
@@ -176,7 +176,7 @@ export async function adminUpsertChallenge(input: Partial<AdminChallengeRow> & {
     if (error) throw error;
     const row = data as AdminChallengeRow;
     if (row.is_active) {
-      await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/academy/defis" }).catch(() => undefined);
+      await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/defis" }).catch(() => undefined);
     }
     return row;
   }
@@ -185,7 +185,7 @@ export async function adminUpsertChallenge(input: Partial<AdminChallengeRow> & {
   if (error) throw error;
   const row = data as AdminChallengeRow;
   if (row.is_active) {
-    await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/academy/defis" }).catch(() => undefined);
+    await notifyAllAmbassadors({ type: "challenge", title: "Nouveau défi", body: row.title, link: "/defis" }).catch(() => undefined);
   }
   return row;
 }

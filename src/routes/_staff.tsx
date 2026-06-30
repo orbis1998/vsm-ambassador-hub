@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, LayoutDashboard, LogOut, FileText, Users, FolderOpen } from "lucide-react";
+import { GraduationCap, LayoutDashboard, LogOut, FileText, Users, FolderOpen, Flag } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/providers/auth-provider";
 import { checkIsAdmin } from "@/services/staff-auth.service";
@@ -18,6 +18,7 @@ const nav = [
   { to: "/staff/academy", label: "Académie", icon: GraduationCap },
   { to: "/staff/applications", label: "Candidatures", icon: FileText },
   { to: "/staff/moderation", label: "Modération", icon: Users },
+  { to: "/staff/reports", label: "Signalements", icon: Flag },
   { to: "/staff/resources", label: "Ressources", icon: FolderOpen },
 ] as const;
 

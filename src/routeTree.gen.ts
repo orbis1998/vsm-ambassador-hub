@@ -32,6 +32,7 @@ import { Route as AppAcademieRouteImport } from './routes/_app.academie'
 import { Route as StaffStaffIndexRouteImport } from './routes/_staff.staff.index'
 import { Route as AppAcademieIndexRouteImport } from './routes/_app.academie.index'
 import { Route as StaffStaffResourcesRouteImport } from './routes/_staff.staff.resources'
+import { Route as StaffStaffReportsRouteImport } from './routes/_staff.staff.reports'
 import { Route as StaffStaffModerationRouteImport } from './routes/_staff.staff.moderation'
 import { Route as StaffStaffApplicationsRouteImport } from './routes/_staff.staff.applications'
 import { Route as StaffStaffAcademyRouteImport } from './routes/_staff.staff.academy'
@@ -156,6 +157,11 @@ const StaffStaffResourcesRoute = StaffStaffResourcesRouteImport.update({
   path: '/staff/resources',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffStaffReportsRoute = StaffStaffReportsRouteImport.update({
+  id: '/staff/reports',
+  path: '/staff/reports',
+  getParentRoute: () => StaffRoute,
+} as any)
 const StaffStaffModerationRoute = StaffStaffModerationRouteImport.update({
   id: '/staff/moderation',
   path: '/staff/moderation',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/staff/academy': typeof StaffStaffAcademyRoute
   '/staff/applications': typeof StaffStaffApplicationsRoute
   '/staff/moderation': typeof StaffStaffModerationRoute
+  '/staff/reports': typeof StaffStaffReportsRoute
   '/staff/resources': typeof StaffStaffResourcesRoute
   '/academie/': typeof AppAcademieIndexRoute
   '/staff/': typeof StaffStaffIndexRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/staff/academy': typeof StaffStaffAcademyRoute
   '/staff/applications': typeof StaffStaffApplicationsRoute
   '/staff/moderation': typeof StaffStaffModerationRoute
+  '/staff/reports': typeof StaffStaffReportsRoute
   '/staff/resources': typeof StaffStaffResourcesRoute
   '/academie': typeof AppAcademieIndexRoute
   '/staff': typeof StaffStaffIndexRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/_staff/staff/academy': typeof StaffStaffAcademyRoute
   '/_staff/staff/applications': typeof StaffStaffApplicationsRoute
   '/_staff/staff/moderation': typeof StaffStaffModerationRoute
+  '/_staff/staff/reports': typeof StaffStaffReportsRoute
   '/_staff/staff/resources': typeof StaffStaffResourcesRoute
   '/_app/academie/': typeof AppAcademieIndexRoute
   '/_staff/staff/': typeof StaffStaffIndexRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/staff/academy'
     | '/staff/applications'
     | '/staff/moderation'
+    | '/staff/reports'
     | '/staff/resources'
     | '/academie/'
     | '/staff/'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/staff/academy'
     | '/staff/applications'
     | '/staff/moderation'
+    | '/staff/reports'
     | '/staff/resources'
     | '/academie'
     | '/staff'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/_staff/staff/academy'
     | '/_staff/staff/applications'
     | '/_staff/staff/moderation'
+    | '/_staff/staff/reports'
     | '/_staff/staff/resources'
     | '/_app/academie/'
     | '/_staff/staff/'
@@ -583,6 +595,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStaffResourcesRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/_staff/staff/reports': {
+      id: '/_staff/staff/reports'
+      path: '/staff/reports'
+      fullPath: '/staff/reports'
+      preLoaderRoute: typeof StaffStaffReportsRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/_staff/staff/moderation': {
       id: '/_staff/staff/moderation'
       path: '/staff/moderation'
@@ -741,6 +760,7 @@ interface StaffRouteChildren {
   StaffStaffAcademyRoute: typeof StaffStaffAcademyRoute
   StaffStaffApplicationsRoute: typeof StaffStaffApplicationsRoute
   StaffStaffModerationRoute: typeof StaffStaffModerationRoute
+  StaffStaffReportsRoute: typeof StaffStaffReportsRoute
   StaffStaffResourcesRoute: typeof StaffStaffResourcesRoute
   StaffStaffIndexRoute: typeof StaffStaffIndexRoute
 }
@@ -749,6 +769,7 @@ const StaffRouteChildren: StaffRouteChildren = {
   StaffStaffAcademyRoute: StaffStaffAcademyRoute,
   StaffStaffApplicationsRoute: StaffStaffApplicationsRoute,
   StaffStaffModerationRoute: StaffStaffModerationRoute,
+  StaffStaffReportsRoute: StaffStaffReportsRoute,
   StaffStaffResourcesRoute: StaffStaffResourcesRoute,
   StaffStaffIndexRoute: StaffStaffIndexRoute,
 }

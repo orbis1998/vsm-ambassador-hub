@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Bell, Check, Trophy, Sparkles, MessageCircle, MessageSquare, Award, Star, Megaphone, GraduationCap, UserPlus, FileText, Loader2 } from "lucide-react";
 import type { NotificationFull } from "@/types/social";
@@ -122,6 +122,35 @@ function NotificationRow({ notification: n, onMarkRead }: { notification: Notifi
 
   return (
     <li className={`flex items-start gap-3 border-b border-border/60 p-4 last:border-0 ${!n.read ? "bg-vsm-red/5" : ""}`}>
+      {n.link ? (
+        <Link to={n.link} className="flex flex-1 items-start gap-3" onClick={onMarkRead}>
+          <NotificationContent n={n} Icon={Icon} actor={actor} />
+        </Link>
+      ) : (
+        <div className="flex flex-1 items-start gap-3">
+          <NotificationContent n={n} Icon={Icon} actor={actor} />
+        </div>
+      )}
+      {!n.read && (
+        <button onClick={onMarkRead} className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider hover:border-vsm-red hover:text-vsm-red">
+          Lu
+        </button>
+      )}
+    </li>
+  );
+}
+
+function NotificationContent({
+  n,
+  Icon,
+  actor,
+}: {
+  n: NotificationFull;
+  Icon: typeof Bell;
+  actor?: { name?: string } | null;
+}) {
+  return (
+    <>
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-vsm-red/15 text-vsm-red">
         <Icon className="h-5 w-5" />
       </span>
@@ -135,11 +164,6 @@ function NotificationRow({ notification: n, onMarkRead }: { notification: Notifi
           {new Date(n.created_at).toLocaleString("fr-FR")}
         </p>
       </div>
-      {!n.read && (
-        <button onClick={onMarkRead} className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider hover:border-vsm-red hover:text-vsm-red">
-          Lu
-        </button>
-      )}
-    </li>
+    </>
   );
 }

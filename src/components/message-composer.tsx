@@ -31,21 +31,17 @@ export function MessageComposer({
   const [voicePreview, setVoicePreview] = useState<{ blob: Blob; url: string } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const hasText = draft.trim().length > 0;
 
   const startVoice = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
     const rec = new MediaRecorder(stream);
     chunksRef.current = [];
     rec.ondataavailable = (e) => chunksRef.current.push(e.data);
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      if (blob.size > 0) {
-        setVoicePreview({ blob, url: URL.createObjectURL(blob) });
-      }
+      if (blob.size > 0) setVoicePreview({ blob, url: URL.createObjectURL(blob) });
     };
     recorderRef.current = rec;
     rec.start();
@@ -70,20 +66,20 @@ export function MessageComposer({
   };
 
   return (
-    <div className="border-t border-border bg-background p-2 md:p-3">
+    <div className="border-t border-[#d1d7db] bg-[#f0f2f5] p-2 dark:border-border dark:bg-background">
       {replyTo && (
-        <div className="mb-2 flex items-center justify-between rounded-lg bg-accent px-3 py-2 text-xs">
+        <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-[#25d366] bg-white px-3 py-2 text-xs dark:border-vsm-red dark:bg-surface">
           <span className="truncate text-muted-foreground">Réponse : {replyTo.body.slice(0, 80)}</span>
-          <button type="button" onClick={onClearReply}><X className="h-4 w-4" /></button>
+          <button type="button" onClick={onClearReply} aria-label="Annuler la réponse"><X className="h-4 w-4" /></button>
         </div>
       )}
       {voicePreview && (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-accent/50 px-3 py-2">
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 dark:bg-surface">
           <audio src={voicePreview.url} controls className="h-8 max-w-[200px] flex-1" />
-          <button type="button" onClick={sendVoicePreview} className="grid h-9 w-9 place-items-center rounded-lg bg-vsm-red text-white" aria-label="Envoyer">
+          <button type="button" onClick={sendVoicePreview} className="grid h-10 w-10 place-items-center rounded-full bg-[#25d366] text-white" aria-label="Envoyer">
             <Send className="h-4 w-4" />
           </button>
-          <button type="button" onClick={discardVoice} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-destructive" aria-label="Supprimer">
+          <button type="button" onClick={discardVoice} className="grid h-10 w-10 place-items-center rounded-full border border-border text-destructive" aria-label="Supprimer">
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -97,36 +93,43 @@ export function MessageComposer({
           </button>
         </div>
       )}
-      <div className="flex items-end gap-1.5">
-        <button type="button" onClick={() => mediaRef.current?.click()} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Photo ou vidéo">
+      <div className="flex items-end gap-2">
+        <button type="button" onClick={() => mediaRef.current?.click()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-black/5 dark:hover:bg-accent" aria-label="Photo ou vidéo">
           <Image className="h-5 w-5" />
         </button>
         <input ref={mediaRef} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => e.target.files?.[0] && onSendMedia(e.target.files[0])} />
-        <button type="button" onClick={() => fileRef.current?.click()} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Fichier">
+        <button type="button" onClick={() => fileRef.current?.click()} className="hidden h-10 w-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-black/5 sm:grid dark:hover:bg-accent" aria-label="Fichier">
           <Paperclip className="h-5 w-5" />
         </button>
         <input ref={fileRef} type="file" className="hidden" onChange={(e) => e.target.files?.[0] && onSendMedia(e.target.files[0])} />
-        {!recording && !voicePreview && (
-          <button type="button" onClick={() => void startVoice()} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Note vocale">
-            <Mic className="h-5 w-5" />
-          </button>
-        )}
         <textarea
           value={draft}
           onChange={(e) => { onDraftChange(e.target.value); onTyping?.(); }}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSendText(); } }}
-          placeholder="Écrire un message…"
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hasText) onSendText(); } }}
+          placeholder="Message"
           rows={1}
-          className="max-h-24 min-h-10 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-vsm-red/50"
+          className="max-h-28 min-h-10 flex-1 resize-none rounded-3xl border border-[#d1d7db] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#25d366]/50 dark:border-border dark:bg-surface dark:focus:border-vsm-red/50"
         />
-        <button
-          type="button"
-          disabled={!draft.trim() || sending}
-          onClick={onSendText}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-vsm-red text-white disabled:opacity-40"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+        {hasText ? (
+          <button
+            type="button"
+            disabled={sending}
+            onClick={onSendText}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#25d366] text-white shadow-sm disabled:opacity-40"
+            aria-label="Envoyer"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        ) : !recording && !voicePreview ? (
+          <button
+            type="button"
+            onClick={() => void startVoice()}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-black/5 dark:hover:bg-accent"
+            aria-label="Note vocale"
+          >
+            <Mic className="h-5 w-5" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

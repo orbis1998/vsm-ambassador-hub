@@ -10,6 +10,8 @@ export interface Lesson {
   type: "video" | "reading" | "practice";
   completed: boolean;
   preview: string;
+  videoUrl?: string;
+  contentMd?: string;
 }
 
 export interface QuizQuestion {
@@ -73,11 +75,14 @@ export interface CourseSummary {
 export interface Course extends CourseSummary {
   objectives: string[];
   videoPoster: string;
+  videoUrl?: string;
   lessons: Lesson[];
   quiz: Quiz;
   mission: Mission;
   downloads: { id: string; label: string; format: string; size: string }[];
   rating: number;
+  ratingCount: number;
+  myRating?: number | null;
   studentCount: number;
 }
 

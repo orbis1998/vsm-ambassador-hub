@@ -8,6 +8,7 @@ import {
   fetchResources,
   findCourseWithParcours,
 } from "@/services/academy.service";
+import { upsertCourseRating } from "@/services/academy-ratings.service";
 import {
   fetchAcademyProgress,
   saveNote,
@@ -55,11 +56,12 @@ export function useCourse(id: string) {
 }
 
 export function useCourseWithParcours(id: string) {
+  const { profile } = useAuth();
   const { data: progress } = useAcademyProgress();
   const completed = Object.values(progress?.completedLessons ?? {}).flat();
   return useQuery({
-    queryKey: ["academy-course-context", id, completed.length],
-    queryFn: () => findCourseWithParcours(id, completed),
+    queryKey: ["academy-course-context", id, completed.length, profile?.userId],
+    queryFn: () => findCourseWithParcours(id, completed, profile?.userId),
     enabled: !!id,
   });
 }
@@ -120,8 +122,17 @@ export function useAcademyMutations() {
     onSuccess: invalidate,
   });
 
+  const rateCourse = useMutation({
+    mutationFn: ({ courseId, stars }: { courseId: string; stars: number }) =>
+      upsertCourseRating(userId, courseId, stars),
+    onSuccess: (_, { courseId }) => {
+      qc.invalidateQueries({ queryKey: ["academy-course-context", courseId] });
+    },
+  });
+
   return {
     toggleFavorite: favorite.mutateAsync,
+    rateCourse: rateCourse.mutateAsync,
     setProgress: (courseId: string, percent: number) => courseProgress.mutateAsync({ courseId, percent }),
     toggleLesson: (lessonId: string, completed: boolean) => lessonToggle.mutateAsync({ lessonId, completed }),
     saveQuizScore: (quizId: string, score: number, passed: boolean) =>

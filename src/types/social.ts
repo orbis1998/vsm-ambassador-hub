@@ -55,6 +55,14 @@ export interface Story {
   like_count?: number;
 }
 
+export interface StoryGroup {
+  author_id: string;
+  stories: Story[];
+  has_unseen: boolean;
+}
+
+export type StoryViewer = { id: string; name: string; avatar?: string };
+
 export interface Comment {
   id: string;
   post_id: string;

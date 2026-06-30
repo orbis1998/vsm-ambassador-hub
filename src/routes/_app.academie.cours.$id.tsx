@@ -19,9 +19,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAcademyStore } from "@/lib/academy-store";
-import { useCourseWithParcours } from "@/hooks/use-academy";
+import { useCourseWithParcours, useAcademyMutations } from "@/hooks/use-academy";
 import { VideoPlayer } from "@/components/video-player";
 import { QuizRunner } from "@/components/quiz-runner";
+import { CourseRating } from "@/components/course-rating";
+import { useAuth } from "@/providers/auth-provider";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/academie/cours/$id")({
   component: CoursePage,
@@ -31,8 +34,10 @@ type Tab = "overview" | "lessons" | "downloads" | "quiz" | "mission" | "notes" |
 
 function CoursePage() {
   const { id } = Route.useParams();
+  const { profile } = useAuth();
   const { data: ctx, isLoading, isError } = useCourseWithParcours(id);
   const { state, toggleFavorite, logHistory, setProgress, setNote, toggleLesson, saveQuizScore } = useAcademyStore();
+  const { rateCourse } = useAcademyMutations();
 
   useEffect(() => {
     if (ctx?.course) logHistory(ctx.course.id);
@@ -107,8 +112,9 @@ function CoursePage() {
         {/* Main column */}
         <div className="space-y-6">
           <VideoPlayer
+            src={course.videoUrl}
             poster={course.videoPoster}
-            durationSec={300}
+            durationSec={course.lessons.find((l) => l.videoUrl)?.videoUrl ? undefined : 300}
             onComplete={handleVideoComplete}
             nextLabel={next?.title}
             onNext={next ? () => (window.location.href = `/academie/cours/${next.id}`) : undefined}
@@ -124,11 +130,23 @@ function CoursePage() {
               <span>·</span>
               <span>{course.difficulty}</span>
               <span>·</span>
-              <span>{course.studentCount} ambassadeurs</span>
+              <span>{course.studentCount} ambassadeur{course.studentCount !== 1 ? "s" : ""}</span>
               <span>·</span>
-              <span>★ {course.rating.toFixed(1)}</span>
+              <span>
+                {course.ratingCount > 0 ? `★ ${course.rating.toFixed(1)} (${course.ratingCount} avis)` : "Pas encore noté"}
+              </span>
             </div>
           </header>
+
+          <CourseRating
+            avgRating={course.rating}
+            reviewCount={course.ratingCount}
+            myRating={course.myRating ?? null}
+            disabled={!profile?.userId}
+            onRate={(stars) => {
+              void rateCourse({ courseId: course.id, stars }).then(() => toast.success("Note enregistrée"));
+            }}
+          />
 
           {/* Tabs */}
           <nav className="flex flex-wrap gap-1 border-b border-border">
@@ -279,23 +297,10 @@ function CoursePage() {
             )}
 
             {tab === "comments" && (
-              <div className="space-y-3">
-                {["Sarah Kabasele", "Patrick Mwamba", "Divine Ilunga"].map((n, i) => (
-                  <div key={n} className="rounded-xl border border-border bg-surface p-4">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-vsm-red/20 text-xs font-bold text-vsm-red">
-                        {n.split(" ").map((x) => x[0]).join("")}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">{n}</p>
-                        <p className="text-[11px] text-muted-foreground">il y a {i + 1}j</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {["Module ultra clair, j'ai déjà appliqué le hook sur mes 3 derniers Reels.", "Le template Canva est génial, gain de temps fou.", "Le quiz m'a poussé à revoir la partie sur l'algorithme."][i]}
-                    </p>
-                  </div>
-                ))}
+              <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
+                <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-3 text-sm text-muted-foreground">Les commentaires de cours arrivent bientôt.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Utilisez les notes ci-dessus pour partager votre avis.</p>
               </div>
             )}
           </div>

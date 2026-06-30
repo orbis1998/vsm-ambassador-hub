@@ -136,6 +136,8 @@ export function mapLesson(row: DbLesson, completed: boolean): Lesson {
     type: row.video_url ? "video" : "reading",
     completed,
     preview: row.description ?? row.content_md?.slice(0, 120) ?? "",
+    videoUrl: row.video_url ?? undefined,
+    contentMd: row.content_md ?? undefined,
   };
 }
 
@@ -154,12 +156,15 @@ export function buildFullCourse(
   parcoursId: string,
   lessons: Lesson[],
   quiz: Quiz,
+  stats?: { avgRating?: number; reviewCount?: number; studentCount?: number; myRating?: number | null },
 ): Course {
   const summary = mapCourseSummary(row, parcoursId);
+  const mainVideo = lessons.find((l) => l.videoUrl)?.videoUrl;
   return {
     ...summary,
     objectives: row.description ? row.description.split("\n").filter(Boolean).slice(0, 5) : [],
     videoPoster: row.cover_url ?? FALLBACK_COVER,
+    videoUrl: mainVideo,
     lessons,
     quiz,
     mission: {
@@ -170,8 +175,10 @@ export function buildFullCourse(
       example: "",
     },
     downloads: [],
-    rating: 4.8,
-    studentCount: 0,
+    rating: stats?.avgRating ?? 0,
+    ratingCount: stats?.reviewCount ?? 0,
+    myRating: stats?.myRating ?? null,
+    studentCount: stats?.studentCount ?? 0,
   };
 }
 

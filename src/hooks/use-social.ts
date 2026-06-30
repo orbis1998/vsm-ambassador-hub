@@ -34,6 +34,10 @@ import {
 
   fetchStories,
 
+  fetchStoryGroups,
+
+  fetchSavedPosts,
+
   fetchUserCommentLikes,
 
   isFollowing,
@@ -354,6 +358,25 @@ export function useStories() {
 
 }
 
+export function useStoryGroups() {
+  const { profile } = useAuth();
+  return useQuery({
+    queryKey: ["story-groups", profile?.userId],
+    queryFn: () => fetchStoryGroups(profile?.userId),
+    enabled: !!profile,
+    staleTime: 30_000,
+  });
+}
+
+export function useSavedPosts(userId?: string) {
+  return useQuery({
+    queryKey: ["saved-posts", userId],
+    queryFn: () => fetchSavedPosts(userId!),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+}
+
 
 
 export function useGroups() {
@@ -608,7 +631,10 @@ export function useSocialMutations() {
 
       toggleSavedPost(userId!, postId, saved),
 
-    onSuccess: invalidateFeed,
+    onSuccess: () => {
+      invalidateFeed();
+      qc.invalidateQueries({ queryKey: ["saved-posts"] });
+    },
 
   });
 
@@ -711,7 +737,10 @@ export function useSocialMutations() {
 
     mutationFn: (storyId: string) => markStoryViewed(userId!, storyId),
 
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["stories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stories"] });
+      qc.invalidateQueries({ queryKey: ["story-groups"] });
+    },
 
   });
 
@@ -721,7 +750,10 @@ export function useSocialMutations() {
 
     mutationFn: ({ file, caption }: { file: File; caption?: string }) => createStory(userId!, file, caption),
 
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["stories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stories"] });
+      qc.invalidateQueries({ queryKey: ["story-groups"] });
+    },
 
   });
 

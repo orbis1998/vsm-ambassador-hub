@@ -11,6 +11,7 @@ import {
   type DbQuiz,
   type DbResource,
 } from "@/lib/academy-mappers";
+import { fetchCourseRatingStats } from "@/services/academy-ratings.service";
 import type { Course, CourseSummary, Parcours, Resource } from "@/types/academy";
 
 function isMissingTable(error: { code?: string } | null): boolean {
@@ -108,6 +109,7 @@ async function fetchQuizForCourse(courseId: string) {
 export async function fetchCourseById(
   id: string,
   completedLessonIds: string[] = [],
+  userId?: string,
 ): Promise<Course | null> {
   const { data, error } = await getSupabase()
     .from("academy_courses")
@@ -124,14 +126,21 @@ export async function fetchCourseById(
   const completed = new Set(completedLessonIds);
   const lessons = await fetchLessonsForCourse(id, completed);
   const quiz = await fetchQuizForCourse(id);
-  return buildFullCourse(row, row.parent_parcours_id ?? "", lessons, quiz);
+  const ratingStats = await fetchCourseRatingStats(id, userId);
+  return buildFullCourse(row, row.parent_parcours_id ?? "", lessons, quiz, {
+    avgRating: ratingStats.avgRating,
+    reviewCount: ratingStats.reviewCount,
+    studentCount: ratingStats.studentCount,
+    myRating: ratingStats.myRating,
+  });
 }
 
 export async function findCourseWithParcours(
   courseId: string,
   completedLessonIds: string[] = [],
+  userId?: string,
 ): Promise<{ course: Course; parcours: Parcours } | null> {
-  const course = await fetchCourseById(courseId, completedLessonIds);
+  const course = await fetchCourseById(courseId, completedLessonIds, userId);
   if (!course) return null;
   const parcours = course.parcoursId ? await fetchParcoursById(course.parcoursId) : null;
   if (!parcours) return { course, parcours: fallbackParcours(course) };

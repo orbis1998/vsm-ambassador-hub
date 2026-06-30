@@ -67,6 +67,39 @@ export async function saveNotificationPreferences(
   if (error) throw error;
 }
 
+/** Notifie un utilisateur via RPC SECURITY DEFINER (respecte les préférences). */
+export async function notifyUser(input: {
+  userId: string;
+  type: NotificationFull["type"];
+  title: string;
+  body: string;
+  link?: string;
+  actorId?: string;
+}): Promise<void> {
+  const { error } = await getSupabase().rpc("academy_notify_user", {
+    p_user_id: input.userId,
+    p_type: input.type,
+    p_title: input.title,
+    p_body: input.body,
+    p_link: input.link ?? null,
+    p_actor_id: input.actorId ?? null,
+  });
+  if (!error) return;
+
+  const prefs = await fetchNotificationPreferences(input.userId);
+  if (prefs[input.type as NotificationChannel] === false) return;
+
+  const { error: insertError } = await getSupabase().from("academy_notifications").insert({
+    user_id: input.userId,
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    link: input.link ?? null,
+    actor_id: input.actorId ?? null,
+  });
+  if (insertError) throw insertError;
+}
+
 export async function createNotification(input: {
   userId: string;
   type: NotificationFull["type"];
@@ -75,18 +108,7 @@ export async function createNotification(input: {
   link?: string;
   actorId?: string;
 }): Promise<void> {
-  const prefs = await fetchNotificationPreferences(input.userId);
-  if (prefs[input.type as NotificationChannel] === false) return;
-
-  const { error } = await getSupabase().from("academy_notifications").insert({
-    user_id: input.userId,
-    type: input.type,
-    title: input.title,
-    body: input.body,
-    link: input.link ?? null,
-    actor_id: input.actorId ?? null,
-  });
-  if (error) throw error;
+  await notifyUser(input);
 }
 
 export async function notifyAllAmbassadors(input: {

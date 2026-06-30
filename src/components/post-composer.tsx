@@ -27,10 +27,10 @@ export function PostComposer() {
     setUploading(true);
     try {
       const uploaded: PostMedia[] = [];
-      for (const file of Array.from(files).slice(0, 4 - media.length)) {
+      for (const file of Array.from(files).slice(0, 10 - media.length)) {
         uploaded.push(await uploadSocialFile(profile.userId, file));
       }
-      setMedia((prev) => [...prev, ...uploaded].slice(0, 4));
+      setMedia((prev) => [...prev, ...uploaded].slice(0, 10));
     } finally {
       setUploading(false);
     }
@@ -99,7 +99,7 @@ export function PostComposer() {
         </div>
       )}
 
-      <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
+      <input ref={imageRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
       <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
       <input ref={docRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
 
@@ -107,7 +107,7 @@ export function PostComposer() {
         <div className="flex items-center gap-1 text-muted-foreground">
           <button
             type="button"
-            disabled={uploading || media.length >= 4}
+            disabled={uploading || media.length >= 10}
             onClick={() => imageRef.current?.click()}
             className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-accent hover:text-foreground disabled:opacity-40"
           >
@@ -115,7 +115,7 @@ export function PostComposer() {
           </button>
           <button
             type="button"
-            disabled={uploading || media.length >= 4}
+            disabled={uploading || media.length >= 10}
             onClick={() => videoRef.current?.click()}
             className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-accent hover:text-foreground disabled:opacity-40"
           >
@@ -123,7 +123,7 @@ export function PostComposer() {
           </button>
           <button
             type="button"
-            disabled={uploading || media.length >= 4}
+            disabled={uploading || media.length >= 10}
             onClick={() => docRef.current?.click()}
             className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-accent hover:text-foreground disabled:opacity-40"
           >

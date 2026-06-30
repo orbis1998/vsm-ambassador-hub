@@ -6,12 +6,15 @@ import { fetchAmbassadorById } from "@/services/ambassador.service";
 import type { VsmOpportunity } from "@/types/opportunities";
 import {
   EMPTY_REACTIONS,
+  REACTIONS,
   type Comment,
   type Group,
   type Post,
   type PostMedia,
   type ReactionKey,
   type Story,
+  type StoryGroup,
+  type StoryViewer,
 } from "@/types/social";
 
 const DEFAULT_GROUP_COVER =
@@ -305,6 +308,89 @@ export async function fetchStories(userId?: string): Promise<Story[]> {
   });
 }
 
+export async function fetchStoryGroups(userId?: string): Promise<StoryGroup[]> {
+  const stories = await fetchStories(userId);
+  const byAuthor = new Map<string, Story[]>();
+  for (const s of stories) {
+    const list = byAuthor.get(s.author_id) ?? [];
+    list.push(s);
+    byAuthor.set(s.author_id, list);
+  }
+
+  const groups: StoryGroup[] = [];
+  for (const [author_id, authorStories] of byAuthor) {
+    authorStories.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    groups.push({
+      author_id,
+      stories: authorStories,
+      has_unseen: authorStories.some((s) => !s.viewed),
+    });
+  }
+
+  groups.sort((a, b) => {
+    if (a.has_unseen !== b.has_unseen) return a.has_unseen ? -1 : 1;
+    const aLast = a.stories[a.stories.length - 1]?.created_at ?? "";
+    const bLast = b.stories[b.stories.length - 1]?.created_at ?? "";
+    return bLast.localeCompare(aLast);
+  });
+
+  return groups;
+}
+
+export async function fetchSavedPosts(userId: string): Promise<Post[]> {
+  const supabase = socialDb();
+  const { data: saved, error } = await supabase
+    .from("social_saved_posts")
+    .select("post_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error || !saved?.length) return [];
+
+  const postIds = (saved as { post_id: string }[]).map((r) => r.post_id);
+  const { data: posts } = await supabase.from("social_posts").select("*").in("id", postIds);
+  const enriched = await enrichPosts((posts ?? []) as PostRow[], userId);
+  const order = new Map(postIds.map((id, i) => [id, i]));
+  return enriched.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
+async function fetchStoryProfiles(userIds: string[]): Promise<Map<string, StoryViewer>> {
+  if (!userIds.length) return new Map();
+  const supabase = socialDb();
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, name, avatar_url")
+    .in("id", userIds);
+
+  return new Map(
+    (profiles ?? []).map((p) => {
+      const row = p as { id: string; full_name?: string; name?: string; avatar_url?: string };
+      return [
+        row.id,
+        {
+          id: row.id,
+          name: row.full_name?.trim() || row.name?.trim() || "Ambassadeur",
+          avatar: row.avatar_url ?? undefined,
+        },
+      ] as const;
+    }),
+  );
+}
+
+export async function fetchStoryViewers(storyId: string): Promise<StoryViewer[]> {
+  const supabase = socialDb();
+  const { data, error } = await supabase
+    .from("social_story_views")
+    .select("viewer_id, viewed_at")
+    .eq("story_id", storyId)
+    .order("viewed_at", { ascending: false })
+    .limit(50);
+  if (error || !data?.length) return [];
+
+  const ids = [...new Set((data as { viewer_id: string }[]).map((r) => r.viewer_id))];
+  const byId = await fetchStoryProfiles(ids);
+  return ids.map((id) => byId.get(id) ?? { id, name: "Ambassadeur" });
+}
+
 export async function markStoryViewed(userId: string, storyId: string): Promise<void> {
   const supabase = socialDb();
   const { error } = await supabase.from("social_story_views").upsert(
@@ -493,6 +579,21 @@ export async function addComment(
     pinned: boolean;
     parent_id: string | null;
   };
+
+  const { data: postRow } = await supabase.from("social_posts").select("author_id").eq("id", postId).maybeSingle();
+  const postAuthorId = (postRow as { author_id?: string } | null)?.author_id;
+  if (postAuthorId && postAuthorId !== userId) {
+    const { notifyUser } = await import("@/services/notifications.service");
+    void notifyUser({
+      userId: postAuthorId,
+      type: "comment",
+      title: "Nouveau commentaire",
+      body: text.trim().slice(0, 120),
+      link: "/communaute",
+      actorId: userId,
+    });
+  }
+
   return {
     id: row.id,
     post_id: row.post_id,
@@ -526,6 +627,21 @@ export async function setPostReaction(
     { onConflict: "post_id,user_id" },
   );
   if (error && !isMissingTable(error)) throw error;
+
+  const { data: postRow } = await supabase.from("social_posts").select("author_id").eq("id", postId).maybeSingle();
+  const postAuthorId = (postRow as { author_id?: string } | null)?.author_id;
+  if (postAuthorId && postAuthorId !== userId) {
+    const emoji = REACTIONS.find((r) => r.key === reaction)?.emoji ?? "❤️";
+    const { notifyUser } = await import("@/services/notifications.service");
+    void notifyUser({
+      userId: postAuthorId,
+      type: "post",
+      title: "Réaction sur votre publication",
+      body: `${emoji} a réagi à votre publication`,
+      link: "/communaute",
+      actorId: userId,
+    });
+  }
 }
 
 export async function sharePost(postId: string): Promise<void> {
@@ -593,6 +709,20 @@ export async function toggleStoryLike(userId: string, storyId: string, liked: bo
   } else {
     const { error } = await supabase.from("social_story_likes").upsert({ story_id: storyId, user_id: userId });
     if (error && !isMissingTable(error)) throw error;
+
+    const { data: storyRow } = await supabase.from("social_stories").select("author_id").eq("id", storyId).maybeSingle();
+    const authorId = (storyRow as { author_id?: string } | null)?.author_id;
+    if (authorId && authorId !== userId) {
+      const { notifyUser } = await import("@/services/notifications.service");
+      void notifyUser({
+        userId: authorId,
+        type: "post",
+        title: "Story aimée",
+        body: "Quelqu'un a aimé votre story",
+        link: "/communaute",
+        actorId: userId,
+      });
+    }
   }
 }
 
@@ -668,6 +798,16 @@ export async function toggleFollow(followerId: string, followingId: string, isFo
       following_id: followingId,
     });
     if (error && !isMissingTable(error)) throw error;
+
+    const { notifyUser } = await import("@/services/notifications.service");
+    void notifyUser({
+      userId: followingId,
+      type: "follow",
+      title: "Nouvel abonné",
+      body: "Quelqu'un s'est abonné à votre profil",
+      link: `/ambassadeur/${followerId}`,
+      actorId: followerId,
+    });
   }
 }
 
@@ -713,6 +853,10 @@ export async function fetchStoryById(storyId: string): Promise<Story | null> {
   const { data, error } = await supabase.from("social_stories").select("*").eq("id", storyId).maybeSingle();
   if (error || !data) return null;
   const row = data as { id: string; author_id: string; created_at: string; expires_at: string; media_url: string; caption?: string };
+  const [{ count: viewCount }, { count: likeCount }] = await Promise.all([
+    supabase.from("social_story_views").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+    supabase.from("social_story_likes").select("*", { count: "exact", head: true }).eq("story_id", storyId),
+  ]);
   return {
     id: row.id,
     author_id: row.author_id,
@@ -721,7 +865,24 @@ export async function fetchStoryById(storyId: string): Promise<Story | null> {
     media_url: row.media_url,
     caption: row.caption,
     viewed: true,
+    view_count: viewCount ?? 0,
+    like_count: likeCount ?? 0,
   };
+}
+
+export async function fetchStoryLikers(storyId: string): Promise<StoryViewer[]> {
+  const supabase = socialDb();
+  const { data, error } = await supabase
+    .from("social_story_likes")
+    .select("user_id, created_at")
+    .eq("story_id", storyId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error || !data?.length) return [];
+
+  const ids = [...new Set((data as { user_id: string }[]).map((r) => r.user_id))];
+  const byId = await fetchStoryProfiles(ids);
+  return ids.map((id) => byId.get(id) ?? { id, name: "Ambassadeur" });
 }
 
 export async function recordPostView(userId: string, postId: string): Promise<void> {

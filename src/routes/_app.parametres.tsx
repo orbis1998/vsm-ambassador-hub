@@ -43,6 +43,7 @@ function SettingsPage() {
   const [handle, setHandle] = useState("");
   const [country, setCountry] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [pushPrefs, setPushPrefs] = useState(getNotificationPreferences());
   const [channelPrefs, setChannelPrefs] = useState<Record<NotificationChannel, boolean> | null>(null);
 
@@ -80,24 +81,31 @@ function SettingsPage() {
     toast.success("Profil mis à jour");
   };
 
-  const togglePush = async (enabled: boolean) => {
-    if (!profile?.userId) return;
-    if (enabled) {
-      const ok = await registerPushSubscription(profile.userId);
-      if (ok) {
-        saveNotificationPreferences({ ...pushPrefs, enabled: true });
-        setPushPrefs(getNotificationPreferences());
-        toast.success("Notifications push activées");
+  const togglePush = async () => {
+    if (!profile?.userId || pushLoading) return;
+    setPushLoading(true);
+    const next = !pushEnabled;
+    try {
+      if (next) {
+        const ok = await registerPushSubscription(profile.userId);
+        if (ok) {
+          saveNotificationPreferences({ ...pushPrefs, enabled: true });
+          setPushPrefs(getNotificationPreferences());
+          setPushEnabled(true);
+          toast.success("Notifications push activées");
+        } else {
+          toast.error("Impossible d'activer les push (permission, VAPID ou Service Worker manquant)");
+        }
       } else {
-        toast.error("Impossible d'activer les push (permission ou VAPID manquant)");
+        await unregisterPushSubscription(profile.userId);
+        saveNotificationPreferences({ ...pushPrefs, enabled: false });
+        setPushPrefs(getNotificationPreferences());
+        setPushEnabled(false);
+        toast.success("Notifications push désactivées");
       }
-    } else {
-      await unregisterPushSubscription(profile.userId);
-      saveNotificationPreferences({ ...pushPrefs, enabled: false });
-      setPushPrefs(getNotificationPreferences());
-      toast.success("Notifications push désactivées");
+    } finally {
+      setPushLoading(false);
     }
-    setPushEnabled(enabled);
   };
 
   return (
@@ -199,19 +207,20 @@ function SettingsPage() {
                   />
                 </label>
               ))}
-              <label className="flex items-center justify-between gap-4 text-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span>
                   Push navigateur
                   {!isPushSupported() && <span className="ml-1 text-xs text-muted-foreground">(non supporté)</span>}
                 </span>
-                <input
-                  type="checkbox"
-                  disabled={!isPushSupported()}
-                  checked={pushEnabled}
-                  onChange={(e) => void togglePush(e.target.checked)}
-                  className="h-4 w-4 accent-vsm-red"
-                />
-              </label>
+                <button
+                  type="button"
+                  disabled={!isPushSupported() || pushLoading}
+                  onClick={() => void togglePush()}
+                  className="min-h-11 rounded-lg bg-vsm-red px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {pushLoading ? "Chargement…" : pushEnabled ? "Désactiver le push" : "Activer le push"}
+                </button>
+              </div>
               {channelPrefs && (
                 <div className="space-y-2 border-t border-border pt-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Types de notifications Academy</p>

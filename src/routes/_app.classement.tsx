@@ -23,7 +23,7 @@ function LeaderboardPage() {
     let list = [...ambassadors];
     if (scope === "city" && city !== "Toutes") list = list.filter((a) => a.country === city);
     if (scope === "points") list.sort((a, b) => b.points - a.points);
-    else if (scope === "certifs") list.sort((a, b) => (b.id.length - a.id.length));
+    else if (scope === "certifs") list.sort((a, b) => b.points - a.points);
     else list.sort((a, b) => b.xp - a.xp);
     return list.slice(0, 100).map((a, i) => ({ ...a, rank: i + 1 }));
   }, [scope, city, ambassadors]);

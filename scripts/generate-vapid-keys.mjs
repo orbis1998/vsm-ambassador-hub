@@ -4,9 +4,9 @@
  * Copier la clé publique dans .env → VITE_VAPID_PUBLIC_KEY
  * Copier la clé privée dans les secrets Supabase → VAPID_PRIVATE_KEY
  */
-import { generateVapidKeys } from "web-push";
+import webpush from "web-push";
 
-const keys = generateVapidKeys();
+const keys = webpush.generateVAPIDKeys();
 console.log("\n=== Clés VAPID Academy ===\n");
 console.log("VITE_VAPID_PUBLIC_KEY=" + keys.publicKey);
 console.log("\n# Secret Supabase (Edge Function academy-web-push) :");

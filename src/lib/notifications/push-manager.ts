@@ -95,6 +95,18 @@ export async function requestPushPermission(): Promise<NotificationPermission> {
  * Enregistre la subscription Web Push côté Supabase.
  * Nécessite VITE_VAPID_PUBLIC_KEY et table `push_subscriptions`.
  */
+async function waitForServiceWorker(maxMs = 12_000): Promise<ServiceWorkerRegistration> {
+  if (!("serviceWorker" in navigator)) throw new Error("Service Worker indisponible");
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (existing?.active) return existing;
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<ServiceWorkerRegistration>((_, reject) => {
+      window.setTimeout(() => reject(new Error("Service Worker non prêt")), maxMs);
+    }),
+  ]);
+}
+
 export async function registerPushSubscription(userId: string): Promise<boolean> {
   if (!isSupabaseConfigured() || !isPushSupported()) return false;
 
@@ -102,12 +114,18 @@ export async function registerPushSubscription(userId: string): Promise<boolean>
   if (permission !== "granted") return false;
 
   const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-  if (!vapidKey) {
+  if (!vapidKey?.trim()) {
     console.warn("[Push] VITE_VAPID_PUBLIC_KEY non configurée — enregistrement différé.");
     return false;
   }
 
-  const registration = await navigator.serviceWorker.ready;
+  let registration: ServiceWorkerRegistration;
+  try {
+    registration = await waitForServiceWorker();
+  } catch {
+    console.warn("[Push] Service Worker non enregistré — rechargez la page une fois.");
+    return false;
+  }
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -143,7 +161,8 @@ export async function registerPushSubscription(userId: string): Promise<boolean>
 
 export async function unregisterPushSubscription(userId: string): Promise<void> {
   if (!isPushSupported()) return;
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await waitForServiceWorker().catch(() => null);
+  if (!registration) return;
   const sub = await registration.pushManager.getSubscription();
   if (sub) {
     await sub.unsubscribe();
