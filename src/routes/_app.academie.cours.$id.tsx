@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -39,12 +39,33 @@ function CoursePage() {
   const { data: ctx, isLoading, isError } = useCourseWithParcours(id);
   const { state, toggleFavorite, logHistory, setProgress, setNote, toggleLesson, saveQuizScore } = useAcademyStore();
   const { rateCourse } = useAcademyMutations();
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const historyLoggedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (ctx?.course) logHistory(ctx.course.id);
-  }, [ctx?.course?.id, logHistory, ctx?.course]);
+    if (!ctx?.course) return;
+    if (historyLoggedRef.current === ctx.course.id) return;
+    historyLoggedRef.current = ctx.course.id;
+    logHistory(ctx.course.id);
+  }, [ctx?.course?.id, ctx?.course, logHistory]);
 
   const [tab, setTab] = useState<Tab>("overview");
+  const [activeVideo, setActiveVideo] = useState<{ src: string; label: string } | null>(null);
+
+  const course = ctx?.course;
+  const defaultVideo = useMemo(() => {
+    if (!course) return { src: null as string | null, label: "" };
+    const lessonWithVideo = course.lessons.find((l) => l.videoUrl);
+    return {
+      src: course.videoUrl ?? lessonWithVideo?.videoUrl ?? null,
+      label: lessonWithVideo?.title ?? course.title,
+    };
+  }, [course]);
+
+  useEffect(() => {
+    if (!course) return;
+    setActiveVideo(defaultVideo.src ? { src: defaultVideo.src, label: defaultVideo.label } : null);
+  }, [course?.id, defaultVideo.src, defaultVideo.label, course]);
 
   if (isLoading) {
     return (
@@ -65,7 +86,7 @@ function CoursePage() {
     );
   }
 
-  const { course, parcours } = ctx;
+  const { parcours } = ctx;
   const idx = parcours.courses.findIndex((c) => c.id === course.id);
   const next = parcours.courses[idx + 1];
   const isFav = state.favorites.includes(course.id);
@@ -75,6 +96,17 @@ function CoursePage() {
     : 0;
   const note = state.notes[course.id] ?? "";
   const progress = state.progress[course.id] ?? 0;
+
+  const videoSrc = activeVideo?.src ?? defaultVideo.src;
+  const videoLabel = activeVideo?.label ?? defaultVideo.label;
+
+  function playLessonVideo(lessonId: string) {
+    const lesson = course.lessons.find((l) => l.id === lessonId);
+    if (!lesson?.videoUrl) return;
+    setActiveVideo({ src: lesson.videoUrl, label: lesson.title });
+    setTab("overview");
+    videoSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function handleVideoComplete() {
     void setProgress(course.id, Math.max(progress, 60));
@@ -86,7 +118,7 @@ function CoursePage() {
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-full space-y-4 overflow-x-hidden sm:space-y-6">
+    <div className="mx-auto min-w-0 max-w-7xl space-y-4 overflow-x-hidden sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <Link
           to="/academie/parcours/$id"
@@ -110,20 +142,46 @@ function CoursePage() {
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)] lg:gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,320px)]">
         <div className="min-w-0 space-y-4 sm:space-y-6">
-          <VideoPlayer
-            src={course.videoUrl}
-            poster={course.videoPoster}
-            durationSec={course.lessons.find((l) => l.videoUrl)?.videoUrl ? undefined : 300}
-            onComplete={handleVideoComplete}
-            nextLabel={next?.title}
-            onNext={
-              next
-                ? () => navigate({ to: "/academie/cours/$id", params: { id: next.id } })
-                : undefined
-            }
-          />
+          <div ref={videoSectionRef} className="min-w-0 scroll-mt-20">
+            <VideoPlayer
+              key={videoSrc ?? course.id}
+              src={videoSrc}
+              poster={course.videoPoster}
+              title={videoLabel}
+              onComplete={handleVideoComplete}
+              nextLabel={next?.title}
+              onNext={
+                next
+                  ? () => navigate({ to: "/academie/cours/$id", params: { id: next.id } })
+                  : undefined
+              }
+            />
+          </div>
+
+          {/* Progression mobile — visible sans sidebar */}
+          <div className="rounded-2xl border border-border bg-surface p-4 lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression</p>
+                <p className="font-display text-2xl font-bold">{progress}%</p>
+              </div>
+              <div className="grid shrink-0 grid-cols-2 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-background/60 px-3 py-2">
+                  <p className="text-muted-foreground">Leçons</p>
+                  <p className="font-bold">{completedLessons.length}/{course.lessons.length}</p>
+                </div>
+                <div className="rounded-lg bg-background/60 px-3 py-2">
+                  <p className="text-muted-foreground">Quiz</p>
+                  <p className="font-bold">{state.quizScores[course.quiz.id] ?? 0}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
+              <div className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow shadow-glow-red" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
 
           <header className="min-w-0">
             <p className="truncate text-xs uppercase tracking-[0.2em] text-vsm-red">
@@ -215,8 +273,9 @@ function CoursePage() {
                 <ul className="divide-y divide-border">
                   {course.lessons.map((l, i) => {
                     const ok = completedLessons.includes(l.id);
+                    const isActive = l.videoUrl && activeVideo?.src === l.videoUrl;
                     return (
-                      <li key={l.id} className="flex items-center gap-3 px-5 py-3">
+                      <li key={l.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
                         <button
                           onClick={() => void toggleLesson(course.id, l.id)}
                           className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border transition ${
@@ -225,13 +284,31 @@ function CoursePage() {
                         >
                           {ok ? <CheckCircle2 className="h-4 w-4" /> : <span className="text-[10px] font-mono">{i + 1}</span>}
                         </button>
-                        <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-medium ${ok ? "text-muted-foreground line-through" : ""}`}>{l.title}</p>
+                        <button
+                          type="button"
+                          onClick={() => (l.videoUrl ? playLessonVideo(l.id) : void toggleLesson(course.id, l.id))}
+                          className={`min-w-0 flex-1 text-left ${l.videoUrl ? "cursor-pointer" : ""}`}
+                        >
+                          <p className={`truncate text-sm font-medium ${ok ? "text-muted-foreground line-through" : ""} ${isActive ? "text-vsm-red" : ""}`}>
+                            {l.title}
+                          </p>
                           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                             {l.type} · {l.duration}
+                            {l.videoUrl ? " · Lire la vidéo" : ""}
                           </p>
-                        </div>
-                        <PlayCircle className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        {l.videoUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => playLessonVideo(l.id)}
+                            className={`shrink-0 rounded-full p-1 ${isActive ? "text-vsm-red" : "text-muted-foreground"}`}
+                            aria-label={`Lire ${l.title}`}
+                          >
+                            <PlayCircle className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <PlayCircle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                        )}
                       </li>
                     );
                   })}
@@ -314,7 +391,7 @@ function CoursePage() {
           </div>
         </div>
 
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <aside className="hidden min-w-0 space-y-4 lg:block lg:sticky lg:top-20 lg:self-start">
           <div className="rounded-2xl border border-border bg-surface p-5">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression du cours</p>
             <p className="mt-1 font-display text-3xl font-bold">{progress}%</p>

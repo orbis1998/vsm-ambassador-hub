@@ -60,10 +60,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const academyUrl = Deno.env.get("ACADEMY_URL") ?? "https://academy.vsmcollection.com";
+    const linkPath = payload.link ?? "/notifications";
+    const absoluteLink = linkPath.startsWith("http") ? linkPath : `${academyUrl.replace(/\/$/, "")}${linkPath.startsWith("/") ? linkPath : `/${linkPath}`}`;
+
     const pushPayload = JSON.stringify({
       title: payload.title.startsWith("VSM Academy") ? payload.title : `VSM Academy · ${payload.title}`,
       body: payload.body ?? "",
-      url: payload.link ?? "/notifications",
+      url: absoluteLink,
     });
 
     let sent = 0;

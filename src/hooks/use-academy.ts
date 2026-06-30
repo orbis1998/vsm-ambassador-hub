@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import {
   fetchAllCourseSummaries,
@@ -18,6 +19,7 @@ import {
   upsertCourseProgress,
   logHistoryLocal,
 } from "@/services/academy-progress.service";
+import type { AcademyProgressState } from "@/types/academy";
 
 export function useParcoursList() {
   return useQuery({
@@ -130,6 +132,17 @@ export function useAcademyMutations() {
     },
   });
 
+  const logHistory = useCallback(
+    (courseId: string) => {
+      const nextHistory = logHistoryLocal(courseId);
+      qc.setQueryData<AcademyProgressState>(["academy-progress", userId], (old) => {
+        if (!old) return old;
+        return { ...old, history: nextHistory.length ? nextHistory : old.history };
+      });
+    },
+    [qc, userId],
+  );
+
   return {
     toggleFavorite: favorite.mutateAsync,
     rateCourse: rateCourse.mutateAsync,
@@ -138,9 +151,6 @@ export function useAcademyMutations() {
     saveQuizScore: (quizId: string, score: number, passed: boolean) =>
       quizAttempt.mutateAsync({ quizId, score, passed }),
     setNote: saveNote,
-    logHistory: (courseId: string) => {
-      logHistoryLocal(courseId);
-      invalidate();
-    },
+    logHistory,
   };
 }

@@ -4,6 +4,16 @@ import type { AcademyProgressState } from "@/types/academy";
 import type { Json } from "@/types/database";
 
 const NOTES_KEY = "vsm.academy.notes";
+const HISTORY_KEY = "vsm.academy.history";
+
+function readLocalHistory(): { courseId: string; at: number }[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as { courseId: string; at: number }[];
+  } catch {
+    return [];
+  }
+}
 
 function isMissingTable(error: { code?: string } | null): boolean {
   return error?.code === "42P01" || error?.code === "PGRST205";
@@ -57,6 +67,18 @@ export async function fetchAcademyProgress(userId: string): Promise<AcademyProgr
   }
   history.sort((a, b) => b.at - a.at);
 
+  const localHistory = readLocalHistory();
+  const historyMap = new Map<string, number>();
+  for (const h of history) historyMap.set(h.courseId, h.at);
+  for (const h of localHistory) {
+    const prev = historyMap.get(h.courseId);
+    if (prev === undefined || h.at > prev) historyMap.set(h.courseId, h.at);
+  }
+  const mergedHistory = Array.from(historyMap.entries())
+    .map(([courseId, at]) => ({ courseId, at }))
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 30);
+
   const completedLessons: Record<string, string[]> = {};
   const lessonIds = (lessonRes.data ?? []).map((r) => (r as { lesson_id: string }).lesson_id);
 
@@ -77,7 +99,7 @@ export async function fetchAcademyProgress(userId: string): Promise<AcademyProgr
     quizScores[r.quiz_id] = Math.max(quizScores[r.quiz_id] ?? 0, r.score);
   }
 
-  return { favorites, history, progress, notes: readLocalNotes(), completedLessons, quizScores };
+  return { favorites, history: mergedHistory, progress, notes: readLocalNotes(), completedLessons, quizScores };
 }
 
 export async function toggleFavorite(userId: string, courseId: string, isFav: boolean): Promise<void> {
@@ -164,14 +186,14 @@ export function saveNote(courseId: string, note: string): void {
   writeLocalNotes(notes);
 }
 
-export function logHistoryLocal(courseId: string): void {
-  const key = "vsm.academy.history";
-  if (typeof window === "undefined") return;
+export function logHistoryLocal(courseId: string): { courseId: string; at: number }[] {
+  if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(localStorage.getItem(key) ?? "[]") as { courseId: string; at: number }[];
+    const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as { courseId: string; at: number }[];
     const next = [{ courseId, at: Date.now() }, ...raw.filter((h) => h.courseId !== courseId)].slice(0, 30);
-    localStorage.setItem(key, JSON.stringify(next));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    return next;
   } catch {
-    /* ignore */
+    return [];
   }
 }

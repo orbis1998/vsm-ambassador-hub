@@ -35,7 +35,7 @@ function ParcoursPage() {
   const pct = p.courses.length ? Math.round((done / p.courses.length) * 100) : 0;
 
   return (
-    <div className="mx-auto min-w-0 max-w-full space-y-6 overflow-x-hidden sm:space-y-8">
+    <div className="mx-auto min-w-0 max-w-7xl space-y-6 overflow-x-hidden sm:space-y-8">
       <Link to="/academie" className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Académie
       </Link>

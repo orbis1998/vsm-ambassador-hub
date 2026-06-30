@@ -78,7 +78,7 @@ function AcademieHub() {
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-full space-y-6 overflow-x-hidden sm:space-y-8">
+    <div className="mx-auto min-w-0 max-w-7xl space-y-6 overflow-x-hidden sm:space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
