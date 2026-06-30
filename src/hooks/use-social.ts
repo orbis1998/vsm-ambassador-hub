@@ -783,7 +783,10 @@ export function useSocialMutations() {
 
     mutationFn: ({ storyId, liked }: { storyId: string; liked: boolean }) => toggleStoryLike(userId!, storyId, liked),
 
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["stories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stories"] });
+      qc.invalidateQueries({ queryKey: ["story-groups"] });
+    },
 
   });
 

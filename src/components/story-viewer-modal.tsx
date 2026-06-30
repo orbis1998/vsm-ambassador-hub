@@ -39,7 +39,7 @@ export function StoryViewerModal({ storyId, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-2 backdrop-blur-xl sm:p-4">
-      <button onClick={onClose} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white" aria-label="Fermer">
+      <button type="button" onClick={onClose} className="absolute right-3 top-3 z-[60] grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Fermer">
         <X className="h-5 w-5" />
       </button>
 

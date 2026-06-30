@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, X, ChevronLeft, ChevronRight, Loader2, Heart, Send, Eye } from "lucide-react";
@@ -150,24 +150,50 @@ function StoryViewer({
   const { toggleStoryLike, replyToStory } = useSocialMutations();
   const [reply, setReply] = useState("");
   const [panel, setPanel] = useState<"viewers" | "likers" | null>(null);
+  const [liked, setLiked] = useState(story.liked ?? false);
+  const [likeCount, setLikeCount] = useState(story.like_count ?? 0);
   const isOwner = meId === story.author_id;
 
-  const { data: likers = [] } = useQuery({
+  useEffect(() => {
+    setLiked(story.liked ?? false);
+    setLikeCount(story.like_count ?? 0);
+  }, [story.id, story.liked, story.like_count]);
+
+  const { data: likers = [], refetch: refetchLikers } = useQuery({
     queryKey: ["story-likers", story.id],
     queryFn: () => fetchStoryLikers(story.id),
     enabled: isOwner && panel === "likers",
   });
 
-  const { data: viewers = [] } = useQuery({
+  const { data: viewers = [], refetch: refetchViewers } = useQuery({
     queryKey: ["story-viewers", story.id],
     queryFn: () => fetchStoryViewers(story.id),
     enabled: isOwner && panel === "viewers",
   });
 
+  const viewCount = panel === "viewers" ? Math.max(story.view_count ?? 0, viewers.length) : (story.view_count ?? 0);
+
   const display = isOwner && me ? me : author;
   const avatar = display?.avatar ?? profileAvatarUrl(null, display?.name ?? "Ambassadeur");
   const name = display?.name ?? "Ambassadeur";
   const isVideo = story.media_url.match(/\.(mp4|webm|mov)/i);
+
+  const handleLike = () => {
+    if (isOwner) return;
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    toggleStoryLike.mutate(
+      { storyId: story.id, liked: wasLiked },
+      {
+        onError: () => {
+          setLiked(wasLiked);
+          setLikeCount(story.like_count ?? 0);
+          toast.error("Impossible d'aimer cette story");
+        },
+      },
+    );
+  };
 
   const handleReply = async () => {
     const text = reply.trim();
@@ -178,16 +204,41 @@ function StoryViewer({
     navigate({ to: "/messages", search: { conv: convId } });
   };
 
+  const openPanel = (next: "viewers" | "likers") => {
+    setPanel((current) => (current === next ? null : next));
+    if (next === "viewers") void refetchViewers();
+    if (next === "likers") void refetchLikers();
+  };
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-2 backdrop-blur-xl sm:p-4">
-      <button onClick={onClose} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white" aria-label="Fermer">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-3 top-3 z-[60] grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+        aria-label="Fermer"
+      >
         <X className="h-5 w-5" />
       </button>
 
-      <div className="absolute left-0 top-0 z-10 h-full w-1/4" onClick={hasPrevStory ? onPrevStory : undefined} aria-hidden />
-      <div className="absolute right-0 top-0 z-10 h-full w-1/4" onClick={hasNextStory ? onNextStory : undefined} aria-hidden />
-
       <div className="relative flex h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 sm:aspect-[9/16] sm:h-[80vh] sm:max-h-[700px]">
+        {hasPrevStory && (
+          <button
+            type="button"
+            onClick={onPrevStory}
+            className="absolute left-0 top-16 z-[5] h-[calc(100%-8rem)] w-1/3"
+            aria-label="Story précédente"
+          />
+        )}
+        {hasNextStory && (
+          <button
+            type="button"
+            onClick={onNextStory}
+            className="absolute right-0 top-16 z-[5] h-[calc(100%-8rem)] w-1/3"
+            aria-label="Story suivante"
+          />
+        )}
+
         <div className="absolute inset-x-0 top-0 z-10 flex gap-1 p-2">
           {group.stories.map((s, i) => (
             <div key={s.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
@@ -202,7 +253,7 @@ function StoryViewer({
           <img src={story.media_url} alt="" className="h-full w-full object-contain bg-black" />
         )}
 
-        <div className="absolute inset-x-3 top-6 flex items-center gap-2 text-white">
+        <div className="absolute inset-x-3 top-6 z-20 flex items-center gap-2 text-white">
           <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-white/20" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{name}</p>
@@ -211,22 +262,23 @@ function StoryViewer({
           {!isOwner && (
             <button
               type="button"
-              onClick={() => toggleStoryLike.mutate({ storyId: story.id, liked: !!story.liked })}
-              className={`grid h-9 w-9 place-items-center rounded-full ${story.liked ? "bg-vsm-red text-white" : "bg-white/10"}`}
+              onClick={handleLike}
+              disabled={toggleStoryLike.isPending}
+              className={`relative z-30 grid h-9 w-9 place-items-center rounded-full ${liked ? "bg-vsm-red text-white" : "bg-white/10"}`}
             >
-              <Heart className={`h-4 w-4 ${story.liked ? "fill-current" : ""}`} />
+              <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
             </button>
           )}
         </div>
 
         {isOwner && (
-          <div className="absolute inset-x-3 bottom-3 space-y-2">
+          <div className="absolute inset-x-3 bottom-3 z-20 space-y-2">
             <div className="flex justify-center gap-3 rounded-lg bg-black/50 px-3 py-2 text-xs text-white backdrop-blur">
-              <button type="button" onClick={() => setPanel(panel === "viewers" ? null : "viewers")} className="inline-flex items-center gap-1 hover:underline">
-                <Eye className="h-3.5 w-3.5" /> {story.view_count ?? 0} vues
+              <button type="button" onClick={() => openPanel("viewers")} className="inline-flex items-center gap-1 hover:underline">
+                <Eye className="h-3.5 w-3.5" /> {viewCount} vues
               </button>
-              <button type="button" onClick={() => setPanel(panel === "likers" ? null : "likers")} className="inline-flex items-center gap-1 hover:underline">
-                <Heart className="h-3.5 w-3.5" /> {story.like_count ?? 0}
+              <button type="button" onClick={() => openPanel("likers")} className="inline-flex items-center gap-1 hover:underline">
+                <Heart className="h-3.5 w-3.5" /> {Math.max(likeCount, likers.length)} likes
               </button>
             </div>
             {panel === "viewers" && (
@@ -239,11 +291,11 @@ function StoryViewer({
         )}
 
         {story.caption && (
-          <p className="absolute inset-x-3 bottom-24 rounded-lg bg-black/60 px-3 py-2 text-center text-sm text-white backdrop-blur">{story.caption}</p>
+          <p className="absolute inset-x-3 bottom-24 z-20 rounded-lg bg-black/60 px-3 py-2 text-center text-sm text-white backdrop-blur">{story.caption}</p>
         )}
 
         {!isOwner && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 border-t border-white/10 bg-black/70 p-3 backdrop-blur">
+          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-white/10 bg-black/70 p-3 backdrop-blur">
             <input
               value={reply}
               onChange={(e) => setReply(e.target.value)}
@@ -258,12 +310,12 @@ function StoryViewer({
         )}
 
         {hasPrevStory && (
-          <button onClick={onPrevStory} className="absolute left-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white">
+          <button type="button" onClick={onPrevStory} className="absolute left-2 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white">
             <ChevronLeft className="h-6 w-6" />
           </button>
         )}
         {hasNextStory && (
-          <button onClick={onNextStory} className="absolute right-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white">
+          <button type="button" onClick={onNextStory} className="absolute right-2 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white">
             <ChevronRight className="h-6 w-6" />
           </button>
         )}
