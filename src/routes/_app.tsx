@@ -10,6 +10,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { checkIsAdmin } from "@/services/staff-auth.service";
 import { useIsBrowser } from "@/hooks/use-is-browser";
 import { AppSplash } from "@/components/app-splash";
+import { X } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
