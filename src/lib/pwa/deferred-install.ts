@@ -1,9 +1,11 @@
-/** Capture globale de beforeinstallprompt — doit charger avant React (évite la course au démarrage). */
+/** Capture globale beforeinstallprompt + détection navigateur pour l'installation PWA. */
 
 export type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
+
+export type InstallBrowser = "chrome" | "firefox" | "samsung" | "edge" | "ios" | "other";
 
 type Listener = (prompt: InstallPromptEvent | null) => void;
 
@@ -53,12 +55,39 @@ export async function runInstallPrompt(): Promise<"accepted" | "dismissed" | "un
   }
 }
 
-export function isAndroid(): boolean {
-  return /android/i.test(navigator.userAgent);
+export function isStandalonePwa(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
 }
 
-export function isIosDevice(): boolean {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+export function detectInstallBrowser(): InstallBrowser {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return "ios";
+  if (/firefox|fxios/.test(ua)) return "firefox";
+  if (/samsungbrowser/.test(ua)) return "samsung";
+  if (/edg\//.test(ua)) return "edge";
+  if (/crios|chrome/.test(ua)) return "chrome";
+  return "other";
+}
+
+export function getManualInstallHint(browser: InstallBrowser): string {
+  switch (browser) {
+    case "ios":
+      return "Safari → Partager → « Sur l'écran d'accueil »";
+    case "firefox":
+      return "Menu ⋮ → Installer (ou « Ajouter à l'écran d'accueil »)";
+    case "samsung":
+      return "Menu ≡ → Ajouter la page à → Écran d'accueil";
+    case "edge":
+      return "Menu ⋯ → Applications → Installer ce site";
+    case "chrome":
+      return "Menu ⋮ → Installer l'application (ou Ajouter à l'écran d'accueil)";
+    default:
+      return "Menu du navigateur → Installer / Ajouter à l'écran d'accueil";
+  }
 }
 
 export function supportsNativeInstallPrompt(): boolean {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   Filter,
@@ -17,8 +17,7 @@ import {
 import type { Difficulty } from "@/types/academy";
 import { useAcademyStore } from "@/lib/academy-store";
 import { useAuth } from "@/providers/auth-provider";
-import { useCourseSummaries, useParcoursList, useAcademyProgress } from "@/hooks/use-academy";
-import { logAcademyDebug } from "@/lib/academy-debug";
+import { useCourseSummaries, useParcoursList } from "@/hooks/use-academy";
 
 export const Route = createFileRoute("/_app/academie/")({
   component: AcademieHub,
@@ -31,73 +30,8 @@ function AcademieHub() {
   const { state } = useAcademyStore();
   const { data: parcours = [], isLoading: parcoursLoading } = useParcoursList();
   const { data: allCourses = [], isLoading: coursesLoading } = useCourseSummaries();
-  const progressQuery = useAcademyProgress();
   const [q, setQ] = useState("");
   const [diff, setDiff] = useState<(typeof DIFFS)[number]>("Tous");
-  const [debugHud, setDebugHud] = useState<string | null>(null);
-  const renderCountRef = useRef(0);
-  const lastScrollLogRef = useRef(0);
-
-  const showDebugHud =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugAcademy");
-
-  // #region agent log
-  renderCountRef.current += 1;
-  useEffect(() => {
-    logAcademyDebug({
-      hypothesisId: "A",
-      location: "_app.academie.index.tsx:render",
-      message: "AcademieHub render",
-      data: {
-        renderCount: renderCountRef.current,
-        parcoursLoading,
-        coursesLoading,
-        isFetching: progressQuery.isFetching,
-        favoritesCount: state.favorites.length,
-      },
-    });
-  });
-
-  useEffect(() => {
-    if (!showDebugHud) return;
-    setDebugHud(`renders:${renderCountRef.current} fetch:${progressQuery.isFetching ? "yes" : "no"}`);
-  }, [showDebugHud, parcoursLoading, coursesLoading, progressQuery.isFetching, state.favorites.length]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const now = Date.now();
-      if (now - lastScrollLogRef.current < 500) return;
-      lastScrollLogRef.current = now;
-      const doc = document.documentElement;
-      const overflow = doc.scrollWidth > doc.clientWidth + 1;
-      logAcademyDebug({
-        hypothesisId: "B",
-        location: "_app.academie.index.tsx:scroll",
-        message: "scroll metrics",
-        data: {
-          scrollY: window.scrollY,
-          innerWidth: window.innerWidth,
-          scrollWidth: doc.scrollWidth,
-          clientWidth: doc.clientWidth,
-          overflow,
-          vvHeight: window.visualViewport?.height ?? null,
-        },
-      });
-      if (showDebugHud) {
-        setDebugHud(`renders:${renderCountRef.current} overflow:${overflow ? "YES" : "no"} y:${Math.round(window.scrollY)}`);
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", onScroll);
-    }
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.visualViewport?.removeEventListener("resize", onScroll);
-    };
-  }, [showDebugHud]);
-  // #endregion
 
   const loading = parcoursLoading || coursesLoading;
 
@@ -143,64 +77,38 @@ function AcademieHub() {
   }
 
   return (
-    <div className="academy-page mx-auto min-w-0 max-w-7xl space-y-6 overflow-x-hidden sm:space-y-8">
-      {showDebugHud && debugHud && (
-        <div className="fixed bottom-20 left-2 z-[60] max-w-[90vw] rounded bg-black/85 px-2 py-1 font-mono text-[10px] text-white">
-          {debugHud}
+    <div className="mx-auto min-w-0 max-w-7xl space-y-6 sm:space-y-8">
+      <header className="space-y-4">
+        <div>
+          <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
+            <Sparkles className="h-3 w-3" /> VSM Academy
+          </p>
+          <h1 className="font-display text-3xl font-bold uppercase tracking-wide md:text-4xl">Académie</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {parcours.length > 0
+              ? `${parcours.length} parcours · ${allCourses.length} cours · certifications officielles.`
+              : "Exécutez la migration 002 sur Supabase pour charger les formations."}
+          </p>
         </div>
-      )}
-
-      {/* En-tête sticky mobile : Favoris / Historique toujours accessibles */}
-      <header className="sticky top-16 z-20 -mx-4 space-y-3 border-b border-border bg-background px-4 pb-3 pt-0 lg:static lg:mx-0 lg:space-y-4 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
-        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between lg:gap-4">
-          <div className="min-w-0">
-            <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
-              <Sparkles className="h-3 w-3" /> VSM Academy
-            </p>
-            <h1 className="font-display text-3xl font-bold uppercase tracking-wide md:text-4xl">Académie</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {parcours.length > 0
-                ? `${parcours.length} parcours · ${allCourses.length} cours · certifications officielles.`
-                : "Exécutez la migration 002 sur Supabase pour charger les formations."}
-            </p>
-          </div>
-          <div className="grid w-full min-w-0 grid-cols-2 gap-2 lg:flex lg:w-auto lg:flex-row">
-            <Link
-              to="/academie/favoris"
-              className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium active:bg-surface-elevated lg:flex-none lg:px-4"
-              onTouchStart={() =>
-                logAcademyDebug({
-                  hypothesisId: "E",
-                  location: "_app.academie.index.tsx:favoris-touch",
-                  message: "favoris touchstart",
-                  data: { scrollY: window.scrollY },
-                })
-              }
-            >
-              <Heart className="h-4 w-4 shrink-0" /> Favoris
-              <span className="rounded-md bg-vsm-red/15 px-1.5 text-xs text-vsm-red">{favoritesCount}</span>
-            </Link>
-            <Link
-              to="/academie/historique"
-              className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium active:bg-surface-elevated lg:flex-none lg:px-4"
-              onTouchStart={() =>
-                logAcademyDebug({
-                  hypothesisId: "E",
-                  location: "_app.academie.index.tsx:historique-touch",
-                  message: "historique touchstart",
-                  data: { scrollY: window.scrollY },
-                })
-              }
-            >
-              <History className="h-4 w-4 shrink-0" /> Historique
-            </Link>
-          </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row">
+          <Link
+            to="/academie/favoris"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium sm:px-4"
+          >
+            <Heart className="h-4 w-4 shrink-0" /> Favoris
+            <span className="rounded-md bg-vsm-red/15 px-1.5 text-xs text-vsm-red">{favoritesCount}</span>
+          </Link>
+          <Link
+            to="/academie/historique"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium sm:px-4"
+          >
+            <History className="h-4 w-4 shrink-0" /> Historique
+          </Link>
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-4 sm:p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 hidden h-48 w-48 rounded-full bg-vsm-red/15 blur-3xl lg:block sm:-right-20 sm:-top-20 sm:h-64 sm:w-64" />
-        <div className="relative grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression générale</p>
             <div className="mt-2 flex items-end gap-3">
@@ -211,7 +119,7 @@ function AcademieHub() {
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow shadow-glow-red"
+                className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow"
                 style={{ width: `${overall}%` }}
               />
             </div>
@@ -222,8 +130,8 @@ function AcademieHub() {
         </div>
       </section>
 
-      <section className="flex w-full min-w-0 max-w-full flex-col gap-3 md:flex-row md:items-center">
-        <div className="relative min-w-0 flex-1">
+      <section className="space-y-3">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
@@ -232,16 +140,17 @@ function AcademieHub() {
             className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-base placeholder:text-muted-foreground focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red md:text-sm"
           />
         </div>
-        <div className="academy-filters flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           {DIFFS.map((d) => (
             <button
               key={d}
+              type="button"
               onClick={() => setDiff(d)}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold ${
                 diff === d
                   ? "border-vsm-red bg-vsm-red/15 text-vsm-red"
-                  : "border-border bg-surface text-muted-foreground hover:text-foreground"
+                  : "border-border bg-surface text-muted-foreground"
               }`}
             >
               {d}
@@ -278,43 +187,29 @@ function AcademieHub() {
                   key={p.id}
                   to="/academie/parcours/$id"
                   params={{ id: p.id }}
-                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface lg:transition-colors lg:hover:-translate-y-0.5 lg:hover:border-vsm-red/50 lg:hover:shadow-glow-red"
+                  className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface"
                 >
                   <div className="relative aspect-[16/9] overflow-hidden">
-                    <img
-                      src={p.cover}
-                      alt={p.title}
-                      className="h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-                    <span className="absolute left-3 top-3 rounded-md bg-background px-2 py-1 text-[10px] font-semibold uppercase tracking-wider">
+                    <img src={p.cover} alt={p.title} className="h-full w-full object-cover" />
+                    <span className="absolute left-3 top-3 rounded-md bg-background px-2 py-1 text-[10px] font-semibold uppercase">
                       Parcours {p.number.toString().padStart(2, "0")}
                     </span>
-                    <span className="absolute right-3 top-3 rounded-md bg-vsm-red/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+                    <span className="absolute right-3 top-3 rounded-md bg-vsm-red/90 px-2 py-1 text-[10px] font-semibold uppercase text-white">
                       {p.difficulty}
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col gap-3 p-5">
-                    <div>
-                      <h3 className="font-display text-xl font-bold uppercase tracking-wide">{p.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{p.tagline}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <h3 className="font-display text-xl font-bold uppercase tracking-wide">{p.title}</h3>
+                    <p className="text-sm text-muted-foreground">{p.tagline}</p>
+                    <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {p.hours}h
                       </span>
                       <span>·</span>
                       <span>{p.courses.length} modules</span>
-                    </div>
-                    <div className="mt-auto">
-                      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-                        <span>Progression</span>
-                        <span className="font-semibold text-foreground">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-background">
-                        <div className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow" style={{ width: `${pct}%` }} />
-                      </div>
+                      <span>·</span>
+                      <span>{pct}%</span>
                     </div>
                   </div>
                 </Link>
@@ -351,16 +246,16 @@ function AcademieHub() {
                 <Link
                   to="/academie/cours/$id"
                   params={{ id: c.id }}
-                  className="flex items-center gap-4 px-4 py-3 transition hover:bg-surface-elevated"
+                  className="flex items-center gap-4 px-4 py-3"
                 >
-                  <img src={c.cover} alt="" className="h-12 w-20 rounded-md object-cover" />
+                  <img src={c.cover} alt="" className="h-12 w-20 shrink-0 rounded-md object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{c.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {c.duration} · {c.difficulty}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>
               </li>
             ))}
@@ -424,26 +319,17 @@ function CourseCard({
     <Link
       to="/academie/cours/$id"
       params={{ id }}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:transition-colors lg:hover:-translate-y-0.5 lg:hover:border-vsm-red/40"
+      className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
     >
       <div className="relative aspect-[16/9] overflow-hidden">
-        <img src={cover} alt="" className="h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent" />
+        <img src={cover} alt="" className="h-full w-full object-cover" />
         <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-[10px] font-semibold">
           <Clock className="h-3 w-3" /> {duration}
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{title}</h3>
-        <div className="mt-auto">
-          <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>{progress > 0 ? "En cours" : "Nouveau"}</span>
-            <span className="font-semibold text-foreground">{progress}%</span>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-background">
-            <div className="h-full rounded-full bg-gradient-to-r from-vsm-red to-vsm-red-glow" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
+        <p className="mt-auto text-xs text-muted-foreground">{progress > 0 ? `${progress}% complété` : "Nouveau"}</p>
       </div>
     </Link>
   );

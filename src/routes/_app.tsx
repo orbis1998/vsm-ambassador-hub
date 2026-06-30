@@ -21,7 +21,6 @@ function AppLayout() {
   const browser = useIsBrowser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isMessagesRoute = pathname.startsWith("/messages");
-  const isAcademyRoute = pathname.startsWith("/academie");
   const { session, loading, refreshProfile } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const configured = isSupabaseConfigured();
@@ -87,9 +86,7 @@ function AppLayout() {
           className={
             isMessagesRoute
               ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0 md:px-6 md:py-8 md:pb-8"
-              : isAcademyRoute
-                ? "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
-                : "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
+              : "min-w-0 flex-1 overflow-x-hidden px-4 py-6 pb-24 md:px-6 md:py-8 md:pb-8"
           }
         >
           <Outlet />
