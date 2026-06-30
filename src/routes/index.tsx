@@ -80,6 +80,8 @@ function LandingPage() {
         <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-vsm-red/10 blur-[120px]" />
 
         <div className="relative mx-auto max-w-6xl">
+          <VsmLogo size="xl" showText={false} className="mb-6" />
+
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red sm:text-[11px]">
             <Crown className="h-3 w-3" />
             Espace officiel ambassadeurs

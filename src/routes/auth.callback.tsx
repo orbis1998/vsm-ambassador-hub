@@ -56,7 +56,7 @@ function AuthCallbackPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4">
       <div className="w-full max-w-sm text-center">
-        <VsmLogo className="mx-auto mb-8 justify-center" />
+        <VsmLogo className="mx-auto mb-8 justify-center" size="lg" showText={false} />
         {error ? (
           <>
             <AlertCircle className="mx-auto h-10 w-10 text-vsm-red" />

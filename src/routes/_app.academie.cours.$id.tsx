@@ -85,7 +85,7 @@ function CoursePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           to="/academie/parcours/$id"
@@ -151,7 +151,7 @@ function CoursePage() {
           />
 
           {/* Tabs */}
-          <nav className="flex flex-wrap gap-1 border-b border-border">
+          <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               ["overview", "Aperçu", BookOpen],
               ["lessons", "Leçons", ListChecks],
@@ -164,7 +164,7 @@ function CoursePage() {
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`relative -mb-px inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${
+                className={`relative -mb-px inline-flex shrink-0 items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition ${
                   tab === key
                     ? "text-vsm-red"
                     : "text-muted-foreground hover:text-foreground"
@@ -292,7 +292,7 @@ function CoursePage() {
                   onChange={(e) => setNote(course.id, e.target.value)}
                   rows={8}
                   placeholder="Capture les idées clés, citations, actions à mener…"
-                  className="w-full resize-none rounded-lg border border-border bg-background p-3 text-sm focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red"
+                  className="w-full resize-none rounded-lg border border-border bg-background p-3 text-base focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red md:text-sm"
                 />
                 <p className="mt-2 text-[11px] text-muted-foreground">Sauvegarde automatique.</p>
               </div>

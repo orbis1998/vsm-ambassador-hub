@@ -154,7 +154,7 @@ function MessagesPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher…"
-                className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-vsm-red/50"
+                className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-base outline-none focus:border-vsm-red/50 md:text-sm"
               />
             </div>
           </div>
@@ -190,7 +190,7 @@ function MessagesPage() {
               <header className="flex shrink-0 items-center gap-2 border-b border-[#d1d7db] bg-[#f0f2f5] px-3 py-2.5 dark:border-border dark:bg-surface md:px-4 md:py-3">
                 <button
                   type="button"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[#00a884] md:hidden"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-vsm-red md:hidden"
                   onClick={() => { setActiveId(null); navigate({ search: {} }); }}
                   aria-label="Retour aux conversations"
                 >

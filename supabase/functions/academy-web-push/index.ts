@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   try {
     const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-    const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@vsmcollection.com";
+    const subject = Deno.env.get("VAPID_SUBJECT") ?? "mailto:academy@vsmcollection.com";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     const pushPayload = JSON.stringify({
-      title: payload.title,
+      title: payload.title.startsWith("VSM Academy") ? payload.title : `VSM Academy · ${payload.title}`,
       body: payload.body ?? "",
       url: payload.link ?? "/notifications",
     });

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trophy, Clock, Users, Flame, Calendar, Star, Loader2 } from "lucide-react";
 import { useChallenges, useJoinChallenge } from "@/hooks/use-gamification";
 
@@ -18,6 +18,15 @@ function ChallengesPage() {
   const list = tab === "all" ? challenges : challenges.filter((c) => c.type === tab);
   const current = active ? challenges.find((c) => c.id === active) : null;
 
+  useEffect(() => {
+    if (!active) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [active]);
+
   if (isLoading) {
     return (
       <div className="grid min-h-[40vh] place-items-center">
@@ -27,7 +36,7 @@ function ChallengesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto min-w-0 max-w-6xl space-y-6 overflow-x-hidden">
       <header className="flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-lg bg-vsm-red/15 text-vsm-red">
           <Trophy className="h-5 w-5" />
@@ -39,21 +48,23 @@ function ChallengesPage() {
         </div>
       </header>
 
-      <div className="flex items-center gap-1 rounded-xl border border-border bg-surface p-1 text-sm">
+      <div className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1 text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {[
-          { k: "all", label: "Tous", icon: Star },
-          { k: "weekly", label: "Hebdomadaires", icon: Calendar },
-          { k: "monthly", label: "Mensuels", icon: Flame },
-          { k: "special", label: "Spéciaux", icon: Trophy },
+          { k: "all", label: "Tous", short: "Tous", icon: Star },
+          { k: "weekly", label: "Hebdomadaires", short: "Sem.", icon: Calendar },
+          { k: "monthly", label: "Mensuels", short: "Mois", icon: Flame },
+          { k: "special", label: "Spéciaux", short: "Spéc.", icon: Trophy },
         ].map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.k}
               onClick={() => setTab(t.k as T)}
-              className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${tab === t.k ? "bg-vsm-red text-white shadow-glow-red" : "text-muted-foreground hover:text-foreground"}`}
+              className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors sm:gap-2 sm:px-4 ${tab === t.k ? "bg-vsm-red text-white shadow-glow-red" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Icon className="h-3.5 w-3.5" /> {t.label}
+              <Icon className="h-3.5 w-3.5" />
+              <span className="sm:hidden">{t.short}</span>
+              <span className="hidden sm:inline">{t.label}</span>
             </button>
           );
         })}
@@ -90,8 +101,14 @@ function ChallengesPage() {
       )}
 
       {current && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur" onClick={() => setActive(null)}>
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-surface" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur sm:items-center sm:p-4"
+          onClick={() => setActive(null)}
+        >
+          <div
+            className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-surface sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-gradient-to-br from-vsm-red to-vsm-red-glow p-6 text-white">
               <p className="text-[11px] uppercase tracking-[0.2em] opacity-90">Défi {current.type}</p>
               <h2 className="mt-1 font-display text-2xl font-bold uppercase tracking-wide">{current.title}</h2>

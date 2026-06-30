@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileNav } from "@/components/mobile-nav";
 import { Topbar } from "@/components/topbar";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { useAuth } from "@/providers/auth-provider";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { checkIsAdmin } from "@/services/staff-auth.service";
 import { useIsBrowser } from "@/hooks/use-is-browser";
-import { X } from "lucide-react";
+import { AppSplash } from "@/components/app-splash";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -48,11 +49,7 @@ function AppLayout() {
   }, [session?.user?.id, isAdmin, refreshProfile]);
 
   if (!configured || loading || !session || checkingAdmin || isAdmin) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-vsm-red" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   return (
@@ -95,6 +92,7 @@ function AppLayout() {
         </main>
         {!isMessagesRoute && <MobileNav />}
       </div>
+      <PwaInstallPrompt />
     </div>
   );
 }

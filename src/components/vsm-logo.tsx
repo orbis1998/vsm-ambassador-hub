@@ -1,16 +1,28 @@
+import { BRAND_LOGO_SRC } from "@/lib/brand";
+
 interface Props {
   className?: string;
   showText?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-export function VsmLogo({ className = "", showText = true }: Props) {
+const SIZE_CLASS = {
+  sm: "h-8 w-8",
+  md: "h-9 w-9",
+  lg: "h-14 w-14",
+  xl: "h-24 w-24",
+} as const;
+
+export function VsmLogo({ className = "", showText = true, size = "md" }: Props) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-vsm-red to-vsm-red-glow shadow-[0_0_24px_-4px_var(--vsm-red)]">
-        <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor" aria-hidden>
-          <path d="M12 2 L3 7 L12 22 L21 7 Z M12 6.2 L17.4 8.6 L12 17.6 L6.6 8.6 Z" />
-        </svg>
-      </div>
+      <img
+        src={BRAND_LOGO_SRC}
+        alt="VSM Academy"
+        className={`${SIZE_CLASS[size]} shrink-0 object-contain`}
+        width={size === "xl" ? 96 : size === "lg" ? 56 : size === "sm" ? 32 : 36}
+        height={size === "xl" ? 96 : size === "lg" ? 56 : size === "sm" ? 32 : 36}
+      />
       {showText && (
         <div className="flex flex-col leading-none">
           <span className="font-display text-base font-bold uppercase tracking-wider">

@@ -68,7 +68,7 @@ export function MessageComposer({
   return (
     <div className="shrink-0 border-t border-[#d1d7db] bg-[#f0f2f5] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] dark:border-border dark:bg-background">
       {replyTo && (
-        <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-[#25d366] bg-white px-3 py-2 text-xs dark:border-vsm-red dark:bg-surface">
+        <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-vsm-red bg-white px-3 py-2 text-xs dark:bg-surface">
           <span className="truncate text-muted-foreground">Réponse : {replyTo.body.slice(0, 80)}</span>
           <button type="button" onClick={onClearReply} aria-label="Annuler la réponse"><X className="h-4 w-4" /></button>
         </div>
@@ -76,7 +76,7 @@ export function MessageComposer({
       {voicePreview && (
         <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 dark:bg-surface">
           <audio src={voicePreview.url} controls className="h-8 max-w-[200px] flex-1" />
-          <button type="button" onClick={sendVoicePreview} className="grid h-10 w-10 place-items-center rounded-full bg-[#25d366] text-white" aria-label="Envoyer">
+          <button type="button" onClick={sendVoicePreview} className="grid h-10 w-10 place-items-center rounded-full bg-vsm-red text-white shadow-glow-red" aria-label="Envoyer">
             <Send className="h-4 w-4" />
           </button>
           <button type="button" onClick={discardVoice} className="grid h-10 w-10 place-items-center rounded-full border border-border text-destructive" aria-label="Supprimer">
@@ -108,14 +108,14 @@ export function MessageComposer({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hasText) onSendText(); } }}
           placeholder="Message"
           rows={1}
-          className="max-h-28 min-h-10 flex-1 resize-none rounded-3xl border border-[#d1d7db] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#25d366]/50 dark:border-border dark:bg-surface dark:focus:border-vsm-red/50"
+          className="max-h-28 min-h-10 flex-1 resize-none rounded-3xl border border-[#d1d7db] bg-white px-4 py-2.5 text-base outline-none focus:border-vsm-red/50 dark:border-border dark:bg-surface md:text-sm"
         />
         {hasText ? (
           <button
             type="button"
             disabled={sending}
             onClick={onSendText}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#25d366] text-white shadow-sm disabled:opacity-40"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-vsm-red text-white shadow-glow-red disabled:opacity-40"
             aria-label="Envoyer"
           >
             <Send className="h-5 w-5" />

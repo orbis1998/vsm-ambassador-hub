@@ -17,8 +17,12 @@ export default defineConfig({
     plugins: [
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["icons/icon.svg"],
+        includeAssets: [
+          "icons/file_000000007df071f490e699e36cce0d66.png",
+          "icons/image_1782650717547.jpeg",
+        ],
         manifest: {
+          id: "/academy/",
           name: "VSM Ambassador Academy",
           short_name: "VSM Academy",
           description:
@@ -33,22 +37,28 @@ export default defineConfig({
           categories: ["education", "social"],
           icons: [
             {
-              src: "/icons/icon.svg",
-              sizes: "any",
-              type: "image/svg+xml",
+              src: "/icons/image_1782650717547.jpeg",
+              sizes: "512x512",
+              type: "image/jpeg",
               purpose: "any",
             },
             {
-              src: "/icons/icon.svg",
+              src: "/icons/image_1782650717547.jpeg",
               sizes: "512x512",
-              type: "image/svg+xml",
+              type: "image/jpeg",
               purpose: "maskable",
+            },
+            {
+              src: "/icons/image_1782650717547.jpeg",
+              sizes: "192x192",
+              type: "image/jpeg",
+              purpose: "any",
             },
           ],
         },
         workbox: {
           importScripts: ["/push-sw.js"],
-          globPatterns: ["**/*.{js,css,html,ico,svg,woff2}"],
+          globPatterns: ["**/*.{js,css,html,ico,svg,png,jpg,jpeg,woff2}"],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

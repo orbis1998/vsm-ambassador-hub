@@ -13,6 +13,7 @@
 
 import { getSupabase } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { waitForServiceWorkerRegistration } from "@/lib/pwa/sw-ready";
 
 export type NotificationChannel =
   | "course"
@@ -91,45 +92,80 @@ export async function requestPushPermission(): Promise<NotificationPermission> {
   return Notification.requestPermission();
 }
 
-/**
- * Enregistre la subscription Web Push côté Supabase.
- * Nécessite VITE_VAPID_PUBLIC_KEY et table `push_subscriptions`.
- */
-async function waitForServiceWorker(maxMs = 12_000): Promise<ServiceWorkerRegistration> {
-  if (!("serviceWorker" in navigator)) throw new Error("Service Worker indisponible");
-  const existing = await navigator.serviceWorker.getRegistration();
-  if (existing?.active) return existing;
-  return Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise<ServiceWorkerRegistration>((_, reject) => {
-      window.setTimeout(() => reject(new Error("Service Worker non prêt")), maxMs);
-    }),
-  ]);
+export type PushSetupIssue =
+  | "unsupported"
+  | "vapid_missing"
+  | "service_worker"
+  | "permission_denied"
+  | "subscription_failed"
+  | "database";
+
+export async function diagnosePushSetup(): Promise<PushSetupIssue | null> {
+  if (!isPushSupported()) return "unsupported";
+  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+  if (!vapidKey?.trim()) return "vapid_missing";
+  try {
+    await waitForServiceWorkerRegistration();
+  } catch {
+    return "service_worker";
+  }
+  if (Notification.permission === "denied") return "permission_denied";
+  return null;
 }
 
+export function pushSetupErrorMessage(issue: PushSetupIssue): string {
+  switch (issue) {
+    case "unsupported":
+      return "Les notifications push ne sont pas supportées sur cet appareil.";
+    case "vapid_missing":
+      return "Configuration VAPID manquante sur le serveur — contactez l'administrateur.";
+    case "service_worker":
+      return "Service Worker non prêt — rechargez la page ou installez l'application PWA.";
+    case "permission_denied":
+      return "Notifications bloquées — autorisez-les dans les paramètres du navigateur.";
+    case "subscription_failed":
+      return "Impossible de créer l'abonnement push — réessayez après rechargement.";
+    case "database":
+      return "Erreur lors de l'enregistrement — réessayez plus tard.";
+    default:
+      return "Impossible d'activer les notifications push.";
+  }
+}
+
+/**
+ * Enregistre la subscription Web Push côté Supabase.
+ * Nécessite VITE_VAPID_PUBLIC_KEY et table `academy_push_subscriptions`.
+ */
 export async function registerPushSubscription(userId: string): Promise<boolean> {
-  if (!isSupabaseConfigured() || !isPushSupported()) return false;
+  if (!isSupabaseConfigured()) return false;
+
+  const issue = await diagnosePushSetup();
+  if (issue === "unsupported" || issue === "vapid_missing" || issue === "service_worker") return false;
+
+  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+  if (!vapidKey?.trim()) return false;
+
+  let registration: ServiceWorkerRegistration;
+  try {
+    registration = await waitForServiceWorkerRegistration();
+  } catch {
+    return false;
+  }
 
   const permission = await requestPushPermission();
   if (permission !== "granted") return false;
 
-  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-  if (!vapidKey?.trim()) {
-    console.warn("[Push] VITE_VAPID_PUBLIC_KEY non configurée — enregistrement différé.");
-    return false;
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    try {
+      subscription = await registration.pushManager.subscribe({
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        userVisibleOnly: true,
+      });
+    } catch {
+      return false;
+    }
   }
-
-  let registration: ServiceWorkerRegistration;
-  try {
-    registration = await waitForServiceWorker();
-  } catch {
-    console.warn("[Push] Service Worker non enregistré — rechargez la page une fois.");
-    return false;
-  }
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidKey),
-  });
 
   const json = subscription.toJSON();
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
@@ -156,12 +192,13 @@ export async function registerPushSubscription(userId: string): Promise<boolean>
     return false;
   }
 
+  saveNotificationPreferences({ ...getNotificationPreferences(), enabled: true });
   return true;
 }
 
 export async function unregisterPushSubscription(userId: string): Promise<void> {
   if (!isPushSupported()) return;
-  const registration = await waitForServiceWorker().catch(() => null);
+  const registration = await waitForServiceWorkerRegistration().catch(() => null);
   if (!registration) return;
   const sub = await registration.pushManager.getSubscription();
   if (sub) {

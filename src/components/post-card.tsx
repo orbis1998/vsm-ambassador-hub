@@ -59,11 +59,7 @@ export function PostCard({ post }: { post: Post }) {
 
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-
-
-  const previewComments = post.comments_count > 0;
-
-  const { data: comments = [] } = usePostComments(post.id, previewComments || showComments);
+  const { data: comments = [] } = usePostComments(post.id, showComments);
 
 
 
@@ -294,10 +290,11 @@ export function PostCard({ post }: { post: Post }) {
         )}
 
         <div className="flex items-center gap-3 text-muted-foreground">
-          <button type="button" onClick={() => setShowComments(true)} className="hover:text-foreground">
-            <span className="hidden sm:inline">{post.comments_count} commentaire{post.comments_count !== 1 ? "s" : ""}</span>
-            <span className="sm:hidden">{post.comments_count > 0 ? post.comments_count : ""}</span>
-          </button>
+          {post.comments_count > 0 && (
+            <button type="button" onClick={() => setShowComments(true)} className="hover:text-foreground">
+              {post.comments_count} commentaire{post.comments_count !== 1 ? "s" : ""}
+            </button>
+          )}
           <span className="hidden sm:inline">{post.shares} partage{post.shares !== 1 ? "s" : ""}</span>
           {(post.view_count ?? 0) > 0 && (
             <span className="hidden sm:inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {post.view_count} vue{(post.view_count ?? 0) !== 1 ? "s" : ""}</span>
@@ -306,33 +303,15 @@ export function PostCard({ post }: { post: Post }) {
 
       </div>
 
-
-
-      {!showComments && comments.length > 0 && (
-
-        <ul className="space-y-2 border-t border-border/60 bg-background/30 px-4 py-3">
-
-          {comments.slice(-2).map((c) => (
-
-            <CommentPreview key={c.id} comment={c as CommentWithLike} postId={post.id} />
-
-          ))}
-
-          {post.comments_count > 2 && (
-
-            <button type="button" onClick={() => setShowComments(true)} className="text-xs font-semibold text-vsm-red hover:underline">
-
-              Voir les {post.comments_count} commentaires
-
-            </button>
-
-          )}
-
-        </ul>
-
+      {!showComments && post.comments_count > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowComments(true)}
+          className="px-4 pb-2 text-left text-sm text-muted-foreground hover:text-foreground"
+        >
+          Afficher les {post.comments_count} commentaire{post.comments_count !== 1 ? "s" : ""}
+        </button>
       )}
-
-
 
       <div className="mt-2 flex items-stretch border-t border-border text-sm">
 
@@ -379,11 +358,16 @@ export function PostCard({ post }: { post: Post }) {
         </div>
 
         <button
+          type="button"
           onClick={() => setShowComments((v) => !v)}
-          className="flex flex-1 items-center justify-center py-3 text-muted-foreground hover:bg-accent"
+          className={`flex flex-1 items-center justify-center gap-1.5 py-3 hover:bg-accent ${showComments ? "text-vsm-red" : "text-muted-foreground"}`}
           aria-label="Commenter"
+          aria-expanded={showComments}
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className={`h-6 w-6 ${showComments ? "fill-vsm-red/20" : ""}`} />
+          {post.comments_count > 0 && !showComments && (
+            <span className="text-xs font-semibold">{post.comments_count}</span>
+          )}
         </button>
 
         <button
@@ -407,19 +391,12 @@ export function PostCard({ post }: { post: Post }) {
 
 
       {showComments && (
-
         <CommentsSection
-
-          postId={post.id}
-
           comments={comments as CommentWithLike[]}
-
           onLike={(commentId, liked) => toggleCommentLike.mutate({ commentId, liked, postId: post.id })}
-
           onReply={(c) => { setReplyToComment(c); setShowComments(true); }}
-
+          onClose={() => setShowComments(false)}
         />
-
       )}
 
       {showComments && (
@@ -475,78 +452,42 @@ export function PostCard({ post }: { post: Post }) {
 
 
 
-function CommentPreview({ comment, postId }: { comment: CommentWithLike; postId: string }) {
-
-  const { data: author } = useAmbassador(comment.author_id);
-
-  const name = author?.name ?? "Ambassadeur";
-
-  return (
-
-    <li className="flex gap-2 text-sm">
-
-      <img src={author?.avatar ?? profileAvatarUrl(null, name)} alt="" className="h-6 w-6 rounded-md object-cover" />
-
-      <p>
-
-        <span className="font-semibold">{name}</span>{" "}
-
-        <span className="text-foreground/90">{comment.text}</span>
-
-      </p>
-
-    </li>
-
-  );
-
-}
-
-
-
 function CommentsSection({
-
-  postId,
-
   comments,
-
   onLike,
-
   onReply,
-
+  onClose,
 }: {
-
-  postId: string;
-
   comments: CommentWithLike[];
-
   onLike: (commentId: string, liked: boolean) => void;
-
   onReply: (comment: CommentWithLike) => void;
-
+  onClose: () => void;
 }) {
-
   if (comments.length === 0) {
-
-    return <p className="border-t border-border p-4 text-center text-xs text-muted-foreground">Aucun commentaire.</p>;
-
+    return (
+      <div className="border-t border-border p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commentaires</p>
+          <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Fermer</button>
+        </div>
+        <p className="text-center text-xs text-muted-foreground">Aucun commentaire pour le moment.</p>
+      </div>
+    );
   }
 
-
-
   return (
-
-    <ul className="space-y-3 border-t border-border bg-background/40 p-4">
-
-      {comments.map((c) => (
-
-        <CommentItem key={c.id} comment={c} onLike={onLike} onReply={() => onReply(c)} />
-
-      ))}
-
-    </ul>
-
+    <div className="border-t border-border bg-background/40">
+      <div className="flex items-center justify-between px-4 pt-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commentaires</p>
+        <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Fermer</button>
+      </div>
+      <ul className="space-y-3 p-4">
+        {comments.map((c) => (
+          <CommentItem key={c.id} comment={c} onLike={onLike} onReply={() => onReply(c)} />
+        ))}
+      </ul>
+    </div>
   );
-
 }
 
 

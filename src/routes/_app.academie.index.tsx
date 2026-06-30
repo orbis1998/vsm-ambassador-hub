@@ -78,7 +78,7 @@ function AcademieHub() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 max-w-full space-y-8 overflow-x-hidden">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
@@ -91,17 +91,17 @@ function AcademieHub() {
               : "Exécutez la migration 002 sur Supabase pour charger les formations."}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row">
           <Link
             to="/academie/favoris"
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+            className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-elevated sm:flex-none"
           >
             <Heart className="h-4 w-4" /> Favoris
             <span className="rounded-md bg-vsm-red/15 px-1.5 text-xs text-vsm-red">{favoritesCount}</span>
           </Link>
           <Link
             to="/academie/historique"
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+            className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-elevated sm:flex-none"
           >
             <History className="h-4 w-4" /> Historique
           </Link>
@@ -110,7 +110,7 @@ function AcademieHub() {
 
       <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-6">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-vsm-red/15 blur-3xl" />
-        <div className="relative grid gap-6 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="relative grid min-w-0 gap-4 sm:grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression générale</p>
             <div className="mt-2 flex items-end gap-3">
@@ -139,7 +139,7 @@ function AcademieHub() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Chercher un parcours, un cours, un module…"
-            className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red"
+            className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-base placeholder:text-muted-foreground focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red md:text-sm"
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto">

@@ -22,6 +22,12 @@ import {
 } from "@/services/messaging.service";
 import type { Conversation, Message } from "@/types/messaging";
 
+const MESSAGE_HIDE_EVENT = "vsm:message-hide";
+
+function dispatchMessageHide(conversationId: string, messageId: string) {
+  window.dispatchEvent(new CustomEvent(MESSAGE_HIDE_EVENT, { detail: { conversationId, messageId } }));
+}
+
 function clearConversationUnread(qc: ReturnType<typeof useQueryClient>, userId: string, conversationId: string) {
   qc.setQueryData<Conversation[]>(["conversations", userId], (old) =>
     old?.map((c) => (c.id === conversationId ? { ...c, unread: 0 } : c)),
@@ -84,6 +90,16 @@ export function useMessages(conversationId: string | undefined) {
   }, [conversationId]);
 
   useEffect(() => {
+    const onHide = (e: Event) => {
+      const { conversationId: cid, messageId } = (e as CustomEvent<{ conversationId: string; messageId: string }>).detail;
+      if (cid !== conversationId) return;
+      setLiveMessages((prev) => prev.filter((m) => m.id !== messageId));
+    };
+    window.addEventListener(MESSAGE_HIDE_EVENT, onHide);
+    return () => window.removeEventListener(MESSAGE_HIDE_EVENT, onHide);
+  }, [conversationId]);
+
+  useEffect(() => {
     if (!conversationId || !userId) return;
 
     clearConversationUnread(qc, userId, conversationId);
@@ -95,6 +111,15 @@ export function useMessages(conversationId: string | undefined) {
     });
 
     const unsubMsg = subscribeToConversationMessages(conversationId, (msg) => {
+      if (msg.deleted_for?.includes(userId)) {
+        setLiveMessages((prev) => prev.filter((m) => m.id !== msg.id));
+        qc.setQueryData<Message[]>(
+          ["messages", conversationId],
+          (old) => old?.filter((m) => m.id !== msg.id) ?? [],
+        );
+        return;
+      }
+
       setLiveMessages((prev) => {
         const existingIdx = prev.findIndex((m) => m.id === msg.id);
         const inQuery = query.data?.findIndex((m) => m.id === msg.id) ?? -1;
@@ -124,11 +149,11 @@ export function useMessages(conversationId: string | undefined) {
       unsubTyping();
       clearInterval(typingClear);
     };
-  }, [conversationId, userId, qc]);
+  }, [conversationId, userId, qc, query.data]);
 
-  const merged = [...(query.data ?? []), ...liveMessages].filter(
-    (m, i, arr) => arr.findIndex((x) => x.id === m.id) === i,
-  );
+  const merged = [...(query.data ?? []), ...liveMessages]
+    .filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i)
+    .filter((m) => !userId || !(m.deleted_for?.includes(userId)));
 
   return { ...query, messages: merged, reactions, typingUser };
 }
@@ -216,6 +241,19 @@ export function useMessagingMutations() {
   const deleteForMe = useMutation({
     mutationFn: ({ messageId }: { messageId: string; conversationId: string }) =>
       deleteMessageForMe(userId!, messageId),
+    onMutate: async ({ messageId, conversationId }) => {
+      await qc.cancelQueries({ queryKey: ["messages", conversationId] });
+      const previous = qc.getQueryData<Message[]>(["messages", conversationId]);
+      qc.setQueryData<Message[]>(
+        ["messages", conversationId],
+        (old) => old?.filter((m) => m.id !== messageId) ?? [],
+      );
+      dispatchMessageHide(conversationId, messageId);
+      return { previous, conversationId };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["messages", ctx.conversationId], ctx.previous);
+    },
     onSuccess: (_, { conversationId: cid }) => invalidate(cid),
   });
 

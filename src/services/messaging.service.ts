@@ -126,10 +126,10 @@ export async function fetchMessages(conversationId: string, userId?: string): Pr
   if (error) return [];
   return (data ?? [])
     .filter((row: Record<string, unknown>) => {
-      if (row.deleted_for_all) return true;
-      if (!userId) return true;
+      if (!userId) return !row.deleted_for_all;
       const deletedFor = (row.deleted_for as string[]) ?? [];
-      return !deletedFor.includes(userId);
+      if (deletedFor.includes(userId)) return false;
+      return true;
     })
     .map((row: Record<string, unknown>) => mapMessage(row));
 }

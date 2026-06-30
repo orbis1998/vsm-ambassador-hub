@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles, Crown, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { AppSplash } from "@/components/app-splash";
 import { VsmLogo } from "@/components/vsm-logo";
 import { useAuth } from "@/providers/auth-provider";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -79,11 +80,7 @@ function LoginPage() {
   }
 
   if (authLoading || (session && checkingAdmin)) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-vsm-red" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   return (

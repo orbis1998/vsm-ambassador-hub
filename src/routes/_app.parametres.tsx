@@ -15,7 +15,10 @@ import {
   registerPushSubscription,
   saveNotificationPreferences,
   unregisterPushSubscription,
+  diagnosePushSetup,
+  pushSetupErrorMessage,
   type NotificationChannel,
+  type PushSetupIssue,
 } from "@/lib/notifications/push-manager";
 import { toast } from "sonner";
 
@@ -87,14 +90,17 @@ function SettingsPage() {
     const next = !pushEnabled;
     try {
       if (next) {
+        const preIssue = await diagnosePushSetup();
         const ok = await registerPushSubscription(profile.userId);
         if (ok) {
           saveNotificationPreferences({ ...pushPrefs, enabled: true });
           setPushPrefs(getNotificationPreferences());
           setPushEnabled(true);
-          toast.success("Notifications push activées");
+          toast.success("Notifications push VSM Academy activées");
         } else {
-          toast.error("Impossible d'activer les push (permission, VAPID ou Service Worker manquant)");
+          const issue: PushSetupIssue =
+            preIssue ?? (await diagnosePushSetup()) ?? "subscription_failed";
+          toast.error(pushSetupErrorMessage(issue));
         }
       } else {
         await unregisterPushSubscription(profile.userId);
