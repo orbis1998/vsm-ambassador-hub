@@ -83,7 +83,8 @@ export function useAcademyProgress() {
     queryKey: ["academy-progress", userId],
     queryFn: () => fetchAcademyProgress(userId!),
     enabled: !!userId,
-    staleTime: 10_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 

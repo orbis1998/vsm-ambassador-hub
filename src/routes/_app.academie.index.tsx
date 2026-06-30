@@ -11,7 +11,6 @@ import {
   History,
   ChevronRight,
   Flame,
-  Star,
   Trophy,
   Loader2,
 } from "lucide-react";
@@ -28,13 +27,13 @@ const DIFFS: ("Tous" | Difficulty)[] = ["Tous", "Débutant", "Intermédiaire", "
 
 function AcademieHub() {
   const { profile } = useAuth();
-  const { state, loading: progressLoading } = useAcademyStore();
+  const { state } = useAcademyStore();
   const { data: parcours = [], isLoading: parcoursLoading } = useParcoursList();
   const { data: allCourses = [], isLoading: coursesLoading } = useCourseSummaries();
   const [q, setQ] = useState("");
   const [diff, setDiff] = useState<(typeof DIFFS)[number]>("Tous");
 
-  const loading = parcoursLoading || coursesLoading || progressLoading;
+  const loading = parcoursLoading || coursesLoading;
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -78,7 +77,7 @@ function AcademieHub() {
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-7xl space-y-6 overflow-x-hidden sm:space-y-8">
+    <div className="academy-page mx-auto min-w-0 max-w-7xl touch-pan-y space-y-6 overflow-x-hidden overscroll-x-none sm:space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-2 rounded-full border border-vsm-red/30 bg-vsm-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-vsm-red">
@@ -109,7 +108,7 @@ function AcademieHub() {
       </header>
 
       <section className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-elevated p-4 sm:p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-vsm-red/15 blur-3xl sm:-right-20 sm:-top-20 sm:h-64 sm:w-64" />
+        <div className="pointer-events-none absolute -right-16 -top-16 hidden h-48 w-48 rounded-full bg-vsm-red/15 blur-3xl lg:block sm:-right-20 sm:-top-20 sm:h-64 sm:w-64" />
         <div className="relative grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Progression générale</p>
@@ -132,8 +131,8 @@ function AcademieHub() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="relative flex-1">
+      <section className="flex w-full min-w-0 max-w-full flex-col gap-3 md:flex-row md:items-center">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={q}
@@ -142,7 +141,7 @@ function AcademieHub() {
             className="w-full rounded-xl border border-border bg-surface py-2.5 pl-9 pr-3 text-base placeholder:text-muted-foreground focus:border-vsm-red focus:outline-none focus:ring-1 focus:ring-vsm-red md:text-sm"
           />
         </div>
-        <div className="flex min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-full max-w-full min-w-0 shrink items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           {DIFFS.map((d) => (
             <button
@@ -188,16 +187,16 @@ function AcademieHub() {
                   key={p.id}
                   to="/academie/parcours/$id"
                   params={{ id: p.id }}
-                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all md:hover:-translate-y-0.5 md:hover:border-vsm-red/50 md:hover:shadow-glow-red"
+                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface lg:transition-colors lg:hover:-translate-y-0.5 lg:hover:border-vsm-red/50 lg:hover:shadow-glow-red"
                 >
                   <div className="relative aspect-[16/9] overflow-hidden">
                     <img
                       src={p.cover}
                       alt={p.title}
-                      className="h-full w-full object-cover transition-transform duration-500 md:group-hover:scale-105"
+                      className="h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-                    <span className="absolute left-3 top-3 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur">
+                    <span className="absolute left-3 top-3 rounded-md bg-background px-2 py-1 text-[10px] font-semibold uppercase tracking-wider">
                       Parcours {p.number.toString().padStart(2, "0")}
                     </span>
                     <span className="absolute right-3 top-3 rounded-md bg-vsm-red/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
@@ -334,12 +333,12 @@ function CourseCard({
     <Link
       to="/academie/cours/$id"
       params={{ id }}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-all md:hover:-translate-y-0.5 md:hover:border-vsm-red/40"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:transition-colors lg:hover:-translate-y-0.5 lg:hover:border-vsm-red/40"
     >
       <div className="relative aspect-[16/9] overflow-hidden">
-        <img src={cover} alt="" className="h-full w-full object-cover md:transition-transform md:duration-500 md:group-hover:scale-105" />
+        <img src={cover} alt="" className="h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent" />
-        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[10px] font-semibold backdrop-blur">
+        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-[10px] font-semibold">
           <Clock className="h-3 w-3" /> {duration}
         </span>
       </div>

@@ -216,3 +216,11 @@
   background-size: 200% 100%;
   animation: vsm-shimmer 2s linear infinite;
 }
+
+/* Académie mobile — évite tremblement / texte qui se chevauche (iOS Safari) */
+@media (max-width: 1023px) {
+  .academy-page {
+    isolation: isolate;
+    -webkit-overflow-scrolling: touch;
+  }
+}
